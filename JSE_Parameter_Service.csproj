@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Configurations>Debug 2023;Release 2023;Debug 2024;Release 2024</Configurations>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RootNamespace>JSE_Parameter_Service</RootNamespace>
+    <AssemblyName>JSE_Parameter_Service</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Configuration: Revit 2023 -->
+  <PropertyGroup Condition="$(Configuration.Contains('2023'))">
+    <RevitVersion>2023</RevitVersion>
+    <DefineConstants>$(DefineConstants);REVIT2023</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Configuration: Revit 2024 -->
+  <PropertyGroup Condition="$(Configuration.Contains('2024'))">
+    <RevitVersion>2024</RevitVersion>
+    <DefineConstants>$(DefineConstants);REVIT2024</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <PropertyGroup>
+      <RevitAddinsPath>$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)</RevitAddinsPath>
+    </PropertyGroup>
+    <Exec Command="if not exist &quot;$(RevitAddinsPath)&quot; mkdir &quot;$(RevitAddinsPath)&quot;" />
+    <Exec Command="copy &quot;$(ProjectDir)JSE_Parameter_Service.addin&quot; &quot;$(RevitAddinsPath)&quot;" />
+    <Exec Command="copy &quot;$(TargetDir)*.dll&quot; &quot;$(RevitAddinsPath)&quot;" />
+    <Exec Command="copy &quot;$(TargetDir)*.pdb&quot; &quot;$(RevitAddinsPath)&quot;" />
+  </Target>
+
+</Project>

@@ -1,0 +1,28 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JSE_Parameter_Service", "JSE_Parameter_Service.csproj", "{2C051264-1875-4C3D-9477-831C2D813476}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug 2023|Any CPU = Debug 2023|Any CPU
+		Release 2023|Any CPU = Release 2023|Any CPU
+		Debug 2024|Any CPU = Debug 2024|Any CPU
+		Release 2024|Any CPU = Release 2024|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C051264-1875-4C3D-9477-831C2D813476}.Debug 2023|Any CPU.ActiveCfg = Debug 2023|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Debug 2023|Any CPU.Build.0 = Debug 2023|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Release 2023|Any CPU.ActiveCfg = Release 2023|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Release 2023|Any CPU.Build.0 = Release 2023|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Debug 2024|Any CPU.ActiveCfg = Debug 2024|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Debug 2024|Any CPU.Build.0 = Debug 2024|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Release 2024|Any CPU.ActiveCfg = Release 2024|Any CPU
+		{2C051264-1875-4C3D-9477-831C2D813476}.Release 2024|Any CPU.Build.0 = Release 2024|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

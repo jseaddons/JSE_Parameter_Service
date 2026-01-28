@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>JSE_Parameter_Service</Name>
+    <Assembly>JSE_Parameter_Service.dll</Assembly>
+    <FullClassName>JSE_Parameter_Service.App</FullClassName>
+    <ClientId>B2857753-D6A8-417A-8991-A88D2F812560</ClientId>
+    <VendorId>JSE</VendorId>
+    <VendorDescription>JSE Engineering</VendorDescription>
+  </AddIn>
+</RevitAddIns>

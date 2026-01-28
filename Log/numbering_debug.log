@@ -1,0 +1,118 @@
+
+SettingsFlag: True, IsClusterInfo: (ID=1387278, Flag=False)
+[2026-01-28 16:22:11] [INFO] Found 2 markable zones for category 'Ducts' in DB
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 11, Category: Ducts, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=-1, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387365: Loaded 3 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 5', ServiceType: 'CHWR 5'
+[2026-01-28 16:22:11] [INFO] [ResolveOverride] Thematic match found! 'CHWR 5' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387365: 'CHILLED' theme detected. inferred prefix 'AC' from UI settings for 'CHWR 5'.
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 11: Using ADVANCED prefix 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 12, Category: Ducts, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=-1, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387374: Loaded 3 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 4', ServiceType: 'CHWR 4'
+[2026-01-28 16:22:11] [INFO] [ResolveOverride] Thematic match found! 'CHWR 4' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387374: 'CHILLED' theme detected. inferred prefix 'AC' from UI settings for 'CHWR 4'.
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 12: Using ADVANCED prefix 'AC'
+[2026-01-28 16:22:11] [STEP] [DEBUG] Total updates to apply: 2
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387365, Value='AC'
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387374, Value='AC'
+[2026-01-28 16:22:11] [STEP] Applying 2 prefix updates to Revit...
+[2026-01-28 16:22:11] [INFO] Found 10 markable zones for category 'Pipes' in DB
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 1, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387278, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387374: Loaded 3 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 4', ServiceType: 'CHWR 4'
+[2026-01-28 16:22:11] [INFO] [ResolveOverride] Thematic match found! 'CHWR 4' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387374: 'CHILLED' theme detected. inferred prefix 'AC' from UI settings for 'CHWR 4'.
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 1: Using ADVANCED prefix 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 3, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387287, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387365: Loaded 3 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 5', ServiceType: 'CHWR 5'
+[2026-01-28 16:22:11] [INFO] [ResolveOverride] Thematic match found! 'CHWR 5' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolveCombinedPrefix] Combined 1387365: 'CHILLED' theme detected. inferred prefix 'AC' from UI settings for 'CHWR 5'.
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 3: Using ADVANCED prefix 'AC'
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 4, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387294, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387294: Loaded 2 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387294: Truly mixed cluster with no overrides. Falling back to 'MEP'
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 4: Using ADVANCED prefix 'MEP'
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 5, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387301, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387301: Loaded 2 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387301: Truly mixed cluster with no overrides. Falling back to 'MEP'
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 5: Using ADVANCED prefix 'MEP'
+[2026-01-28 16:22:11] [INFO] [ResolvePrefix] ID: 8, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387308, Flag=False)
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387308: Loaded 2 constituents from DB.
+[2026-01-28 16:22:11] [INFO] [ResolveClusterPrefix] Cluster 1387308: Truly mixed cluster with no overrides. Falling back to 'MEP'
+[2026-01-28 16:22:11] [INFO] [MarkParameterService] 8: Using ADVANCED prefix 'MEP'
+[2026-01-28 16:22:11] [STEP] [DEBUG] Total updates to apply: 5
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387374, Value='AC'
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387365, Value='AC'
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387294, Value='MEP'
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387301, Value='MEP'
+[2026-01-28 16:22:11] [INFO] [DEBUG] Update: ElementId=1387308, Value='MEP'
+[2026-01-28 16:22:11] [STEP] Applying 5 prefix updates to Revit...
+[2026-01-28 16:34:37] [INFO] Found 2 markable zones for category 'Ducts' in DB
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 11, Category: Ducts, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=-1, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387365: Loaded 3 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=11, Cat='Ducts', Sys='Mechanical Exhaust Air 1', Norm='Mechanical Exhaust Air 1'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=3, Cat='Pipes', Sys='CHWR 5', Norm='CHILLED'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=6, Cat='Pipes', Sys='Hydronic Supply 4', Norm='Hydronic Supply 4'
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 5', ServiceType: 'CHWR 5'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 5' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387365: Rule #3 'CHILLED' Exception. Single-link + Chilled. Using 'AC' from UI settings for 'CHWR 5'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 11: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 12, Category: Ducts, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=-1, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387374: Loaded 3 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=12, Cat='Ducts', Sys='Mechanical Supply Air 65', Norm='Mechanical Supply Air 65'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=2, Cat='Pipes', Sys='Hydronic Supply 1', Norm='Hydronic Supply 1'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=1, Cat='Pipes', Sys='CHWR 4', Norm='CHILLED'
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 4', ServiceType: 'CHWR 4'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 4' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387374: Rule #3 'CHILLED' Exception. Single-link + Chilled. Using 'AC' from UI settings for 'CHWR 4'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 12: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [STEP] [DEBUG] Total updates to apply: 2
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387365, Value='AC'
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387374, Value='AC'
+[2026-01-28 16:34:37] [STEP] Applying 2 prefix updates to Revit...
+[2026-01-28 16:34:37] [INFO] Found 10 markable zones for category 'Pipes' in DB
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 1, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387278, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387374: Loaded 3 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=12, Cat='Ducts', Sys='Mechanical Supply Air 65', Norm='Mechanical Supply Air 65'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=2, Cat='Pipes', Sys='Hydronic Supply 1', Norm='Hydronic Supply 1'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=1, Cat='Pipes', Sys='CHWR 4', Norm='CHILLED'
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 4', ServiceType: 'CHWR 4'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 4' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387374: Rule #3 'CHILLED' Exception. Single-link + Chilled. Using 'AC' from UI settings for 'CHWR 4'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 1: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 3, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387287, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387365: Loaded 3 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=11, Cat='Ducts', Sys='Mechanical Exhaust Air 1', Norm='Mechanical Exhaust Air 1'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=3, Cat='Pipes', Sys='CHWR 5', Norm='CHILLED'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Constituent Analysis: ID=6, Cat='Pipes', Sys='Hydronic Supply 4', Norm='Hydronic Supply 4'
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 5', ServiceType: 'CHWR 5'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 5' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveCombinedPrefix] Combined 1387365: Rule #3 'CHILLED' Exception. Single-link + Chilled. Using 'AC' from UI settings for 'CHWR 5'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 3: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 4, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387294, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387294: Loaded 2 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 1', ServiceType: 'CHWR 1'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 1' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387294: 'CHILLED' theme detected. Using 'AC'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 4: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 5, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387301, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387301: Loaded 2 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 3', ServiceType: 'CHWR 3'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 3' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387301: 'CHILLED' theme detected. Using 'AC'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 5: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolvePrefix] ID: 8, Category: Pipes, OptFlag: True, SettingsFlag: True, IsClusterInfo: (ID=1387308, Flag=False)
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387308: Loaded 2 constituents from DB.
+[2026-01-28 16:34:37] [INFO] [MarkPrefixSettings] Resolving prefix for Category: Pipes, SystemType: 'CHWR 2', ServiceType: 'CHWR 2'
+[2026-01-28 16:34:37] [INFO] [ResolveOverride] Thematic match found! 'CHWR 2' -> 'CHWR' (Theme: 'CHILLED') -> Result: 'AC'
+[2026-01-28 16:34:37] [INFO] [ResolveClusterPrefix] Cluster 1387308: 'CHILLED' theme detected. Using 'AC'.
+[2026-01-28 16:34:37] [INFO] [MarkParameterService] 8: Using ADVANCED prefix 'AC'
+[2026-01-28 16:34:37] [STEP] [DEBUG] Total updates to apply: 5
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387374, Value='AC'
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387365, Value='AC'
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387294, Value='AC'
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387301, Value='AC'
+[2026-01-28 16:34:37] [INFO] [DEBUG] Update: ElementId=1387308, Value='AC'
+[2026-01-28 16:34:37] [STEP] Applying 5 prefix updates to Revit...
