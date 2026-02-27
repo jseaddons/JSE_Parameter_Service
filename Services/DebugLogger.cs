@@ -17,7 +17,7 @@ namespace JSE_Parameter_Service.Services
     /// Toggle to false if you want to silence logs.
     /// NOTE: DeploymentConfiguration.DeploymentMode automatically disables all logging.
     /// </summary>
-    public static bool IsEnabled =false;
+    public static bool IsEnabled = true;
     
     /// <summary>
     /// Current service name for logging context

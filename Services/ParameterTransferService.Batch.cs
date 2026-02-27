@@ -8,6 +8,7 @@ using JSE_Parameter_Service.Data;
 using JSE_Parameter_Service.Data.Repositories;
 
 using System.IO;
+using JSE_Parameter_Service.Services.Helpers;
 namespace JSE_Parameter_Service.Services
 {
     // Partial extension to ParameterTransferService for Batch Operations
@@ -107,7 +108,7 @@ namespace JSE_Parameter_Service.Services
                     OpeningId = id,
                     SleeveInstanceId = GetIntegerParameter(el, "Sleeve Instance ID"),
                     ClusterInstanceId = GetIntegerParameter(el, "Cluster Sleeve Instance ID"),
-                    CombinedInstanceId = id.IntegerValue
+                    CombinedInstanceId = id.GetIdInt()
                 };
                 identities.Add(identity);
             }
@@ -205,7 +206,7 @@ namespace JSE_Parameter_Service.Services
                 if (SetParameterValueSafely(param, action.Value))
                 {
                     setSuccessCount++;
-                    successfullyTransferredSleeveIds.Add(action.OpeningId.IntegerValue);
+                    successfullyTransferredSleeveIds.Add(action.OpeningId.GetIdInt());
                 }
                 else
                 {

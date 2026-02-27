@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -100,7 +100,7 @@ namespace JSE_Parameter_Service.Services.ParameterCapture
             // Warn if whitelist is too large
             if (keys.Count > 30 && !DeploymentConfiguration.DeploymentMode)
             {
-                DebugLogger.Warning($"[PARAM_SNAPSHOT] ⚠️ Large parameter whitelist detected: {keys.Count} parameters. This may increase memory usage.");
+                DebugLogger.Warning($"[PARAM_SNAPSHOT] âš ï¸ Large parameter whitelist detected: {keys.Count} parameters. This may increase memory usage.");
             }
 
             return keys;
@@ -129,12 +129,12 @@ namespace JSE_Parameter_Service.Services.ParameterCapture
 
         /// <summary>
         /// FEATURE 26: Map parameter names for category-specific handling.
-        /// Example: "System Type" → "Service Type" for Cable Trays.
+        /// Example: "System Type" â†’ "Service Type" for Cable Trays.
         /// </summary>
         public string MapParameterName(string requestedName, Element element)
         {
             // FEATURE 26: Cable Tray mapping
-            bool isCableTray = element.Category?.Id?.IntegerValue == (int)BuiltInCategory.OST_CableTray ||
+            bool isCableTray = element.Category?.Id?.GetIdInt() == (int)BuiltInCategory.OST_CableTray ||
                               element.Category?.Name?.IndexOf("Cable Tray", StringComparison.OrdinalIgnoreCase) >= 0 ||
                               element is CableTray;
 
@@ -155,3 +155,4 @@ namespace JSE_Parameter_Service.Services.ParameterCapture
         }
     }
 }
+

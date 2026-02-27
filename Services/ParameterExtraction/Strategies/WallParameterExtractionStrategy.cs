@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Services.ParameterExtraction.Interfaces;
@@ -66,7 +66,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
                         StorageType.Double => param.AsDouble(),
                         StorageType.Integer => param.AsInteger(),
                         StorageType.String => param.AsString(),
-                        StorageType.ElementId => param.AsElementId()?.IntegerValue,
+                        StorageType.ElementId => param.AsElementId()?.GetIdInt(),
                         _ => null
                     };
 
@@ -86,3 +86,4 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
         }
     }
 }
+

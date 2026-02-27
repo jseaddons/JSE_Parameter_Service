@@ -1,4 +1,4 @@
-using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -56,7 +56,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 if (heightParam == null && DamperHeightFallback.Contains(name))
                     heightParam = param;
 
-                if (name == "Diameter" || name == "DIMENSION_DIAMETER" || param.Id.IntegerValue == (int)BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)
+                if (name == "Diameter" || name == "DIMENSION_DIAMETER" || param.Id.GetIdInt() == (int)BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)
                     snapshot.Diameter = param.AsDouble();
             }
             if (widthParam != null)
@@ -67,3 +67,4 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
     }
 }
+

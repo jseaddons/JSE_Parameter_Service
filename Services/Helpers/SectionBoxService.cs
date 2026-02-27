@@ -42,21 +42,23 @@ namespace JSE_Parameter_Service.Services
             using (var cmd = dbConnection.CreateCommand())
             {
                 cmd.CommandText = @"REPLACE INTO SessionContext (Key, Value, UpdatedAt) VALUES (@k1, @v1, @dt), (@k2, @v2, @dt), (@k3, @v3, @dt), (@k4, @v4, @dt), (@k5, @v5, @dt), (@k6, @v6, @dt), (@k7, @v7, @dt)";
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k1", "SectionBoxMinX"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v1", wMinX));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k2", "SectionBoxMinY"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v2", wMinY));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k3", "SectionBoxMinZ"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v3", wMinZ));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k4", "SectionBoxMaxX"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v4", wMaxX));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k5", "SectionBoxMaxY"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v5", wMaxY));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k6", "SectionBoxMaxZ"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v6", wMaxZ));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@k7", "SectionBoxIsActive"));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@v7", 1));
-                cmd.Parameters.Add(new System.Data.SQLite.SQLiteParameter("@dt", DateTime.UtcNow));
+
+                void AddParam(string name, object value)
+                {
+                    var p = cmd.CreateParameter();
+                    p.ParameterName = name;
+                    p.Value = value;
+                    cmd.Parameters.Add(p);
+                }
+
+                AddParam("@k1", "SectionBoxMinX"); AddParam("@v1", wMinX);
+                AddParam("@k2", "SectionBoxMinY"); AddParam("@v2", wMinY);
+                AddParam("@k3", "SectionBoxMinZ"); AddParam("@v3", wMinZ);
+                AddParam("@k4", "SectionBoxMaxX"); AddParam("@v4", wMaxX);
+                AddParam("@k5", "SectionBoxMaxY"); AddParam("@v5", wMaxY);
+                AddParam("@k6", "SectionBoxMaxZ"); AddParam("@v6", wMaxZ);
+                AddParam("@k7", "SectionBoxIsActive"); AddParam("@v7", 1);
+                AddParam("@dt", DateTime.UtcNow);
                 cmd.ExecuteNonQuery();
             }
         }

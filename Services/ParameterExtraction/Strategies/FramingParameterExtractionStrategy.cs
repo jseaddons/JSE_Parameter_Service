@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Services.ParameterExtraction.Interfaces;
@@ -20,8 +20,8 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
         public bool CanHandle(Element element)
         {
             if (element?.Category == null) return false;
-            return element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_StructuralFraming ||
-                   element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_StructuralColumns;
+            return element.Category.Id.GetIdInt() == (int)BuiltInCategory.OST_StructuralFraming ||
+                   element.Category.Id.GetIdInt() == (int)BuiltInCategory.OST_StructuralColumns;
         }
 
         public ElementParameterSnapshot Extract(Element element)
@@ -69,7 +69,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
                         StorageType.Double => param.AsDouble(),
                         StorageType.Integer => param.AsInteger(),
                         StorageType.String => param.AsString(),
-                        StorageType.ElementId => param.AsElementId()?.IntegerValue,
+                        StorageType.ElementId => param.AsElementId()?.GetIdInt(),
                         _ => null
                     };
 
@@ -99,3 +99,4 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
         }
     }
 }
+

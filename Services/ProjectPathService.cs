@@ -21,10 +21,37 @@ namespace JSE_Parameter_Service.Services
 
         public static string GetProjectRoot(Document doc)
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var root = Path.Combine(appData, "JSE_MEP_Openings", "Projects");
-            var projectName = Sanitize(doc?.Title ?? "Default");
-            return Path.Combine(root, projectName);
+            try
+            {
+                var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                // ✅ FIX: AppData can be empty string in some Revit contexts (causes Path.Combine to throw 'path1' null)
+                if (string.IsNullOrEmpty(appData))
+                    appData = Environment.GetEnvironmentVariable("APPDATA") ?? Path.GetTempPath();
+
+                var root = Path.Combine(appData, "JSE_MEP_Openings", "Projects");
+
+                // ✅ FIX: Strip .rvt extension before sanitizing to match JSE_MEPOPENING_23's path resolution.
+                // Without this, a document titled "MyProject.rvt" resolves to folder "MyProject_rvt" here
+                // but "MyProject" in MEPOPENING_23 — causing a different DB path and empty dropdowns.
+                var rawName = doc?.Title ?? "Default";
+                if (rawName.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase))
+                    rawName = Path.GetFileNameWithoutExtension(rawName);
+
+                var projectName = Sanitize(rawName);
+                var projectPath = Path.Combine(root, projectName);
+
+                if (!Directory.Exists(projectPath))
+                    Directory.CreateDirectory(projectPath);
+
+                return projectPath;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProjectPathService] Error resolving project path: {ex.Message}");
+                // Absolute fallback — same as MEPOPENING_23
+                return Path.Combine(Path.GetTempPath(), "JSE_MEP_Openings", "Default");
+            }
         }
 
         public static string GetFiltersDirectory(Document doc)
@@ -38,6 +65,7 @@ namespace JSE_Parameter_Service.Services
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         }
     }
+
 }
 
 

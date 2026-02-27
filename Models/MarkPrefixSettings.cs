@@ -38,9 +38,16 @@ namespace JSE_Parameter_Service.Models
         /// </summary>
         public bool UseAdvancedPrefixResolution { get; set; } = true;
 
+        [System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<string, string> DuctSystemTypeOverrides { get; set; } = new Dictionary<string, string>();
+        
+        [System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<string, string> PipeSystemTypeOverrides { get; set; } = new Dictionary<string, string>();
+        
+        [System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<string, string> DuctAccessoriesSystemTypeOverrides { get; set; } = new Dictionary<string, string>();
+        
+        [System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<string, string> CableTrayServiceTypeOverrides { get; set; } = new Dictionary<string, string>();
         
         public string GetDisciplinePrefix(string category)
@@ -71,8 +78,9 @@ namespace JSE_Parameter_Service.Models
         
         public string GetPrefixForElement(string category, string? systemType = null, string? serviceType = null)
         {
-            NumberingDebugLogger.LogInfo($"[MarkPrefixSettings] Resolving prefix for Category: {category}, SystemType: '{systemType}', ServiceType: '{serviceType}'");
+            string? primary = (category == "Cable Trays") ? serviceType : systemType;
 
+            // 1. Try to find an Abbreviation (Override) for the specific system/service
             string? overriden = null;
 
             if (category == "Ducts") overriden = ResolveOverride(DuctSystemTypeOverrides, systemType, NormalizeMepType(systemType), "Duct");
@@ -80,8 +88,10 @@ namespace JSE_Parameter_Service.Models
             else if (category == "Duct Accessories") overriden = ResolveOverride(DuctAccessoriesSystemTypeOverrides, systemType, NormalizeMepType(systemType), "Duct Acc");
             else if (category == "Cable Trays") overriden = ResolveOverride(CableTrayServiceTypeOverrides, serviceType, NormalizeMepType(serviceType), "Tray");
 
-            if (overriden != null) return overriden;
+            if (!string.IsNullOrWhiteSpace(overriden)) 
+                return overriden.Trim();
 
+            // 2. Fallback to Discipline Prefix if no override exists
             return GetDisciplinePrefix(category);
         }
 

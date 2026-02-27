@@ -3,7 +3,14 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+#if NET8_0_OR_GREATER
+using SQLiteConnection = Microsoft.Data.Sqlite.SqliteConnection;
+using SQLiteCommand = Microsoft.Data.Sqlite.SqliteCommand;
+using SQLiteParameter = Microsoft.Data.Sqlite.SqliteParameter;
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
 using System.Data.SQLite;
+#endif
 using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Data;
 using JSE_Parameter_Service.Models;
@@ -253,8 +260,9 @@ namespace JSE_Parameter_Service.Services.Placement
                         END
                         WHERE {keyColumnName} IN ({string.Join(",", groupUpdates.Select(u => $"'{u.Key}'"))})";
 
-                    using (var command = new SQLiteCommand(updateQuery, (SQLiteConnection)_dbContext.Connection))
+                    using (var command = ((SQLiteConnection)_dbContext.Connection).CreateCommand())
                     {
+                        command.CommandText = updateQuery;
                         var rowsAffected = await command.ExecuteNonQueryAsync();
                         result.SuccessCount += rowsAffected;
                     }
@@ -286,15 +294,11 @@ namespace JSE_Parameter_Service.Services.Placement
                     SET {update.ParameterName} = @parameterValue
                     WHERE {update.KeyColumnName} = @key";
 
-                var parameters = new[]
+                using (var command = ((SQLiteConnection)_dbContext.Connection).CreateCommand())
                 {
-                    new System.Data.SQLite.SQLiteParameter("@parameterValue", update.ParameterValue),
-                    new System.Data.SQLite.SQLiteParameter("@key", update.Key)
-                };
-
-                using (var command = new SQLiteCommand(updateQuery, (SQLiteConnection)_dbContext.Connection))
-                {
-                    command.Parameters.AddRange(parameters);
+                    command.CommandText = updateQuery;
+                    command.Parameters.Add(new SQLiteParameter("@parameterValue", update.ParameterValue));
+                    command.Parameters.Add(new SQLiteParameter("@key", update.Key));
                     var rowsAffected = await command.ExecuteNonQueryAsync();
                 
                     if (rowsAffected > 0)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -38,13 +38,13 @@ namespace JSE_Parameter_Service.Services
 
             if (document == null)
             {
-                _logger("[SystemTypeCatalog] No document context supplied – returning empty catalog.");
+                _logger("[SystemTypeCatalog] No document context supplied â€“ returning empty catalog.");
                 return catalog;
             }
 
             try
             {
-                // ✅ CRITICAL CHANGE: Only load from database (Skip Revit per user request)
+                // âœ… CRITICAL CHANGE: Only load from database (Skip Revit per user request)
                 // "NO REVIT ONLY DB"
                 LoadSystemTypesFromDatabase(document, catalog, category);
             }
@@ -58,22 +58,22 @@ namespace JSE_Parameter_Service.Services
         }
 
         /// <summary>
-        /// ✅ SIMPLIFIED: Loads system/service types directly from Revit by querying placed sleeves
+        /// âœ… SIMPLIFIED: Loads system/service types directly from Revit by querying placed sleeves
         /// Gets unique System Type (for Ducts/Pipes) or Service Type (for Cable Trays) from MEP elements
-        /// ✅ NEW: Filters by category if specified - only returns system/service types for that category
+        /// âœ… NEW: Filters by category if specified - only returns system/service types for that category
         /// </summary>
         private void LoadSystemTypesFromRevit(Document document, SystemTypeCatalog catalog, string category = null)
         {
             try
             {
-                // ✅ CRITICAL FIX: Ensure document is valid
+                // âœ… CRITICAL FIX: Ensure document is valid
                 if (document == null || document.IsValidObject == false)
                 {
-                    _logger($"[SystemTypeCatalog] ⚠️ Invalid document - cannot load system types from Revit");
+                    _logger($"[SystemTypeCatalog] âš ï¸ Invalid document - cannot load system types from Revit");
                     return;
                 }
                 
-                // ✅ STEP 1: Get individual sleeve IDs from database (SleeveInstanceId > 0, NOT ClusterInstanceId)
+                // âœ… STEP 1: Get individual sleeve IDs from database (SleeveInstanceId > 0, NOT ClusterInstanceId)
                 var individualSleeveIds = new HashSet<int>();
                 try
                 {
@@ -81,7 +81,7 @@ namespace JSE_Parameter_Service.Services
                     {
                         using (var cmd = context.Connection.CreateCommand())
                         {
-                            // ✅ CRITICAL: Only get individual sleeves (SleeveInstanceId > 0), exclude cluster sleeves
+                            // âœ… CRITICAL: Only get individual sleeves (SleeveInstanceId > 0), exclude cluster sleeves
                             cmd.CommandText = @"
                                 SELECT DISTINCT SleeveInstanceId 
                                 FROM ClashZones 
@@ -107,11 +107,11 @@ namespace JSE_Parameter_Service.Services
                 }
                 catch (Exception dbEx)
                 {
-                    _logger($"[SystemTypeCatalog] ⚠️ Error querying database for individual sleeves: {dbEx.Message}");
+                    _logger($"[SystemTypeCatalog] âš ï¸ Error querying database for individual sleeves: {dbEx.Message}");
                     // Fallback: process all sleeves if database query fails
                 }
                 
-                // ✅ STEP 2: Collect only individual sleeves (those with IDs in our set)
+                // âœ… STEP 2: Collect only individual sleeves (those with IDs in our set)
                 var allSleeves = new FilteredElementCollector(document)
                     .OfClass(typeof(FamilyInstance))
                     .Cast<FamilyInstance>()
@@ -124,17 +124,17 @@ namespace JSE_Parameter_Service.Services
                         
                         if (!isOpeningFamily) return false;
                         
-                        // ✅ CRITICAL: Only include if this sleeve ID is in our individual sleeves set
+                        // âœ… CRITICAL: Only include if this sleeve ID is in our individual sleeves set
                         // If database query failed, include all (fallback)
                         if (individualSleeveIds.Count == 0) return true; // Fallback: include all
                         
-                        return individualSleeveIds.Contains(fi.Id.IntegerValue);
+                        return individualSleeveIds.Contains(fi.Id.GetIdInt());
                     })
                     .ToList();
                 
                 _logger($"[SystemTypeCatalog] Found {allSleeves.Count} individual sleeves (SleeveInstanceId > 0) in document");
                 
-                // ✅ STEP 3: Use HashSet for proper deduplication
+                // âœ… STEP 3: Use HashSet for proper deduplication
                 var uniqueSystemTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var uniqueServiceTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 
@@ -142,7 +142,7 @@ namespace JSE_Parameter_Service.Services
                 int skippedNoMepId = 0;
                 int skippedMepNotFound = 0;
                 
-                // ✅ STEP 4: For each individual sleeve, get its MEP element and extract system/service type
+                // âœ… STEP 4: For each individual sleeve, get its MEP element and extract system/service type
                 foreach (var sleeve in allSleeves)
                 {
                     try
@@ -192,10 +192,10 @@ namespace JSE_Parameter_Service.Services
                             continue;
                         }
                         
-                        // ✅ STEP 3: Determine category from MEP element
+                        // âœ… STEP 3: Determine category from MEP element
                         var mepCategory = mepElement.Category?.Name ?? string.Empty;
                         
-                        // ✅ STEP 4: Filter by category if specified
+                        // âœ… STEP 4: Filter by category if specified
                         if (!string.IsNullOrWhiteSpace(category))
                         {
                             // Map category names
@@ -217,8 +217,8 @@ namespace JSE_Parameter_Service.Services
                             }
                         }
                         
-                        // ✅ STEP 5: Extract System Type or Service Type based on category
-                        // ✅ CRITICAL: Use HashSet for deduplication - only add unique values
+                        // âœ… STEP 5: Extract System Type or Service Type based on category
+                        // âœ… CRITICAL: Use HashSet for deduplication - only add unique values
                         if (mepCategory.IndexOf("Cable Tray", StringComparison.OrdinalIgnoreCase) >= 0 ||
                             mepCategory.IndexOf("Conduit", StringComparison.OrdinalIgnoreCase) >= 0)
                         {
@@ -279,7 +279,7 @@ namespace JSE_Parameter_Service.Services
                     }
                 }
                 
-                // ✅ DIAGNOSTIC: Log statistics (show unique counts, not total extracted)
+                // âœ… DIAGNOSTIC: Log statistics (show unique counts, not total extracted)
                 _logger($"[SystemTypeCatalog] Revit query stats: {allSleeves.Count} individual sleeves found, {processedSleeves} processed, {skippedNoMepId} skipped (no MEP ID), {skippedMepNotFound} skipped (MEP not found), {uniqueSystemTypes.Count} UNIQUE System Types, {uniqueServiceTypes.Count} UNIQUE Service Types");
             }
             catch (Exception ex)
@@ -293,7 +293,7 @@ namespace JSE_Parameter_Service.Services
         }
         
         /// <summary>
-        /// ✅ OPTIMIZED: Loads system types directly from MepSystemType and MepServiceType columns in ClashZones.
+        /// âœ… OPTIMIZED: Loads system types directly from MepSystemType and MepServiceType columns in ClashZones.
         /// Ignores the "category" filter to ensure ALL system types are available as requested.
         /// "LOAD ALL ACTEGORY NOT ONLY DUCT FOR SYSTEM TYPE"
         /// </summary>
@@ -303,7 +303,7 @@ namespace JSE_Parameter_Service.Services
             {
                 if (document == null || document.IsValidObject == false)
                 {
-                    _logger($"[SystemTypeCatalog] ⚠️ Invalid document - cannot load system types from database");
+                    _logger($"[SystemTypeCatalog] âš ï¸ Invalid document - cannot load system types from database");
                     return;
                 }
 
@@ -314,11 +314,11 @@ namespace JSE_Parameter_Service.Services
                 {
                     if (context.Connection == null)
                     {
-                        _logger($"[SystemTypeCatalog] ⚠️ Database connection is null");
+                        _logger($"[SystemTypeCatalog] âš ï¸ Database connection is null");
                         return;
                     }
 
-                    // ✅ STEP 1: Load UNIQUE System Types from MepSystemType column (All Categories)
+                    // âœ… STEP 1: Load UNIQUE System Types from MepSystemType column (All Categories)
                     using (var cmd = context.Connection.CreateCommand())
                     {
                         cmd.CommandText = @"
@@ -345,7 +345,7 @@ namespace JSE_Parameter_Service.Services
                         _logger($"[SystemTypeCatalog] Found {systemCount} unique System Types in database (All Categories)");
                     }
 
-                    // ✅ STEP 2: Load UNIQUE Service Types from MepServiceType column (All Categories)
+                    // âœ… STEP 2: Load UNIQUE Service Types from MepServiceType column (All Categories)
                     using (var cmd = context.Connection.CreateCommand())
                     {
                         cmd.CommandText = @"
@@ -372,7 +372,7 @@ namespace JSE_Parameter_Service.Services
                         _logger($"[SystemTypeCatalog] Found {serviceCount} unique Service Types in database (All Categories)");
                     }
 
-                    // ✅ STEP 3: Fallback - Extract from MepElementSystemAbbreviation if needed
+                    // âœ… STEP 3: Fallback - Extract from MepElementSystemAbbreviation if needed
                     using (var cmd = context.Connection.CreateCommand())
                     {
                         cmd.CommandText = @"
@@ -401,11 +401,11 @@ namespace JSE_Parameter_Service.Services
                     }
                 }
 
-                _logger($"[SystemTypeCatalog] ✅ Final catalog: {catalog.SystemTypes.Count} System Types, {catalog.ServiceTypes.Count} Service Types");
+                _logger($"[SystemTypeCatalog] âœ… Final catalog: {catalog.SystemTypes.Count} System Types, {catalog.ServiceTypes.Count} Service Types");
             }
             catch (Exception ex)
             {
-                _logger($"[SystemTypeCatalog] ❌ Error in LoadSystemTypesFromDatabase: {ex.Message}");
+                _logger($"[SystemTypeCatalog] âŒ Error in LoadSystemTypesFromDatabase: {ex.Message}");
             }
         }
         
@@ -479,7 +479,7 @@ namespace JSE_Parameter_Service.Services
 
         /// <summary>
         /// Helper to get parameter value from dictionary with multiple key options
-        /// ✅ CRITICAL: Uses case-insensitive matching to handle parameter name variations
+        /// âœ… CRITICAL: Uses case-insensitive matching to handle parameter name variations
         /// </summary>
         private static string GetParameterValue(Dictionary<string, string> dict, params string[] keys)
         {
@@ -563,5 +563,6 @@ namespace JSE_Parameter_Service.Services
         }
     }
 }
+
 
 

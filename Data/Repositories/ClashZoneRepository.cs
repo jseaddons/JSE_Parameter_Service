@@ -2,7 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+#if NET8_0_OR_GREATER
+using SQLiteConnection = Microsoft.Data.Sqlite.SqliteConnection;
+using SQLiteCommand = Microsoft.Data.Sqlite.SqliteCommand;
+using SQLiteDataReader = Microsoft.Data.Sqlite.SqliteDataReader;
+using SQLiteParameter = Microsoft.Data.Sqlite.SqliteParameter;
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
 using System.Data.SQLite;
+#endif
 using System.Text.Json;
 using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Data.Entities;
@@ -244,8 +252,8 @@ namespace JSE_Parameter_Service.Data.Repositories
 
         private string GetUniqueKey(ClashZone zone, int comboId)
         {
-            var mepId = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-            var hostId = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+            var mepId = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+            var hostId = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
             var interX = Math.Round(zone.IntersectionPoint?.X ?? zone.IntersectionPointX, 6);
             var interY = Math.Round(zone.IntersectionPoint?.Y ?? zone.IntersectionPointY, 6);
             var interZ = Math.Round(zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ, 6);
@@ -267,8 +275,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                     if (!comboMap.ContainsKey(zone.Id)) continue;
 
                     int cid = comboMap[zone.Id];
-                    int mid = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-                    int hid = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+                    int mid = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+                    int hid = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
                     double x = zone.IntersectionPoint?.X ?? zone.IntersectionPointX;
                     double y = zone.IntersectionPoint?.Y ?? zone.IntersectionPointY;
                     double z = zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ;
@@ -427,8 +435,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                                 if (!comboMap.ContainsKey(zone.Id)) continue;
 
                                 var comboId = comboMap[zone.Id];
-                                var mepId = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-                                var hostId = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+                                var mepId = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+                                var hostId = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
                                 var interX = zone.IntersectionPoint?.X ?? zone.IntersectionPointX;
                                 var interY = zone.IntersectionPoint?.Y ?? zone.IntersectionPointY;
                                 var interZ = zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ;
@@ -483,8 +491,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                             if (!comboMap.ContainsKey(zone.Id)) continue;
 
                             var comboId = comboMap[zone.Id];
-                            var mepId = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-                            var hostId = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+                            var mepId = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+                            var hostId = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
                             var interX = zone.IntersectionPoint?.X ?? zone.IntersectionPointX;
                             var interY = zone.IntersectionPoint?.Y ?? zone.IntersectionPointY;
                             var interZ = zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ;
@@ -878,6 +886,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                             MepServiceType TEXT,
                             ElevationFromLevel REAL,
                             MarkedForClusterProcess INTEGER,
+                            IsClusteredFlag INTEGER,
                             IsCurrentClashFlag INTEGER
                         )";
                     cmd.ExecuteNonQuery();
@@ -895,34 +904,35 @@ namespace JSE_Parameter_Service.Data.Repositories
 
                     // 3. Insert update data into Temp Table
                     cmd.CommandText = @"
-                        INSERT INTO BulkUpdateZones (ClashZoneId, IsResolvedFlag, IsClusterResolvedFlag, IsCombinedResolved, SleeveInstanceId, ClusterInstanceId, MepParameterValuesJson, HostParameterValuesJson, WallCenterlinePointX, WallCenterlinePointY, WallCenterlinePointZ, MepOrientationX, MepOrientationY, MepOrientationZ, MepRotationAngleRad, MepRotationAngleDeg, MepOrientationDirection, StructuralThickness, MepElementTypeName, MepElementFamilyName, MepSystemType, MepServiceType, ElevationFromLevel, MarkedForClusterProcess, IsCurrentClashFlag) 
-                        VALUES (@ClashZoneId, @IsResolvedFlag, @IsClusterResolvedFlag, @IsCombinedResolved, @SleeveInstanceId, @ClusterInstanceId, @MepParameterValuesJson, @HostParameterValuesJson, @WallCenterlinePointX, @WallCenterlinePointY, @WallCenterlinePointZ, @MepOrientationX, @MepOrientationY, @MepOrientationZ, @MepRotationAngleRad, @MepRotationAngleDeg, @MepOrientationDirection, @StructuralThickness, @MepElementTypeName, @MepElementFamilyName, @MepSystemType, @MepServiceType, @ElevationFromLevel, @MarkedForClusterProcess, @IsCurrentClashFlag)";
+                        INSERT INTO BulkUpdateZones (ClashZoneId, IsResolvedFlag, IsClusterResolvedFlag, IsCombinedResolved, SleeveInstanceId, ClusterInstanceId, MepParameterValuesJson, HostParameterValuesJson, WallCenterlinePointX, WallCenterlinePointY, WallCenterlinePointZ, MepOrientationX, MepOrientationY, MepOrientationZ, MepRotationAngleRad, MepRotationAngleDeg, MepOrientationDirection, StructuralThickness, MepElementTypeName, MepElementFamilyName, MepSystemType, MepServiceType, ElevationFromLevel, MarkedForClusterProcess, IsClusteredFlag, IsCurrentClashFlag) 
+                        VALUES (@ClashZoneId, @IsResolvedFlag, @IsClusterResolvedFlag, @IsCombinedResolved, @SleeveInstanceId, @ClusterInstanceId, @MepParameterValuesJson, @HostParameterValuesJson, @WallCenterlinePointX, @WallCenterlinePointY, @WallCenterlinePointZ, @MepOrientationX, @MepOrientationY, @MepOrientationZ, @MepRotationAngleRad, @MepRotationAngleDeg, @MepOrientationDirection, @StructuralThickness, @MepElementTypeName, @MepElementFamilyName, @MepSystemType, @MepServiceType, @ElevationFromLevel, @MarkedForClusterProcess, @IsClusteredFlag, @IsCurrentClashFlag)";
 
-                    var pId = cmd.Parameters.Add("@ClashZoneId", System.Data.DbType.Int32);
-                    var pRes = cmd.Parameters.Add("@IsResolvedFlag", System.Data.DbType.Int32);
-                    var pClust = cmd.Parameters.Add("@IsClusterResolvedFlag", System.Data.DbType.Int32);
-                    var pCombo = cmd.Parameters.Add("@IsCombinedResolved", System.Data.DbType.Int32);
-                    var pSleeve = cmd.Parameters.Add("@SleeveInstanceId", System.Data.DbType.Int32);
-                    var pClustSleeve = cmd.Parameters.Add("@ClusterInstanceId", System.Data.DbType.Int32);
-                    var pMepP = cmd.Parameters.Add("@MepParameterValuesJson", System.Data.DbType.String);
-                    var pHostP = cmd.Parameters.Add("@HostParameterValuesJson", System.Data.DbType.String);
-                    var pCX = cmd.Parameters.Add("@WallCenterlinePointX", System.Data.DbType.Double);
-                    var pCY = cmd.Parameters.Add("@WallCenterlinePointY", System.Data.DbType.Double);
-                    var pCZ = cmd.Parameters.Add("@WallCenterlinePointZ", System.Data.DbType.Double);
-                    var pMX = cmd.Parameters.Add("@MepOrientationX", System.Data.DbType.Double);
-                    var pMY = cmd.Parameters.Add("@MepOrientationY", System.Data.DbType.Double);
-                    var pMZ = cmd.Parameters.Add("@MepOrientationZ", System.Data.DbType.Double);
-                    var pRotRad = cmd.Parameters.Add("@MepRotationAngleRad", System.Data.DbType.Double);
-                    var pRotDeg = cmd.Parameters.Add("@MepRotationAngleDeg", System.Data.DbType.Double);
-                    var pDir = cmd.Parameters.Add("@MepOrientationDirection", System.Data.DbType.String);
-                    var pStructThick = cmd.Parameters.Add("@StructuralThickness", System.Data.DbType.Double);
-                    var pMepTypeName = cmd.Parameters.Add("@MepElementTypeName", System.Data.DbType.String);
-                    var pMepFamilyName = cmd.Parameters.Add("@MepElementFamilyName", System.Data.DbType.String);
-                    var pMepSysType = cmd.Parameters.Add("@MepSystemType", System.Data.DbType.String);
-                    var pMepServType = cmd.Parameters.Add("@MepServiceType", System.Data.DbType.String);
-                    var pElevLevel = cmd.Parameters.Add("@ElevationFromLevel", System.Data.DbType.Double);
-                    var pMarked = cmd.Parameters.Add("@MarkedForClusterProcess", System.Data.DbType.Int32);
-                    var pIsCurrent = cmd.Parameters.Add("@IsCurrentClashFlag", System.Data.DbType.Int32);
+                    var pId = cmd.Parameters.Add(new SQLiteParameter("@ClashZoneId", (object)DBNull.Value));
+                    var pRes = cmd.Parameters.Add(new SQLiteParameter("@IsResolvedFlag", (object)DBNull.Value));
+                    var pClust = cmd.Parameters.Add(new SQLiteParameter("@IsClusterResolvedFlag", (object)DBNull.Value));
+                    var pCombo = cmd.Parameters.Add(new SQLiteParameter("@IsCombinedResolved", (object)DBNull.Value));
+                    var pSleeve = cmd.Parameters.Add(new SQLiteParameter("@SleeveInstanceId", (object)DBNull.Value));
+                    var pClustSleeve = cmd.Parameters.Add(new SQLiteParameter("@ClusterInstanceId", (object)DBNull.Value));
+                    var pMepP = cmd.Parameters.Add(new SQLiteParameter("@MepParameterValuesJson", (object)DBNull.Value));
+                    var pHostP = cmd.Parameters.Add(new SQLiteParameter("@HostParameterValuesJson", (object)DBNull.Value));
+                    var pCX = cmd.Parameters.Add(new SQLiteParameter("@WallCenterlinePointX", (object)DBNull.Value));
+                    var pCY = cmd.Parameters.Add(new SQLiteParameter("@WallCenterlinePointY", (object)DBNull.Value));
+                    var pCZ = cmd.Parameters.Add(new SQLiteParameter("@WallCenterlinePointZ", (object)DBNull.Value));
+                    var pMX = cmd.Parameters.Add(new SQLiteParameter("@MepOrientationX", (object)DBNull.Value));
+                    var pMY = cmd.Parameters.Add(new SQLiteParameter("@MepOrientationY", (object)DBNull.Value));
+                    var pMZ = cmd.Parameters.Add(new SQLiteParameter("@MepOrientationZ", (object)DBNull.Value));
+                    var pRotRad = cmd.Parameters.Add(new SQLiteParameter("@MepRotationAngleRad", (object)DBNull.Value));
+                    var pRotDeg = cmd.Parameters.Add(new SQLiteParameter("@MepRotationAngleDeg", (object)DBNull.Value));
+                    var pDir = cmd.Parameters.Add(new SQLiteParameter("@MepOrientationDirection", (object)DBNull.Value));
+                    var pStructThick = cmd.Parameters.Add(new SQLiteParameter("@StructuralThickness", (object)DBNull.Value));
+                    var pMepTypeName = cmd.Parameters.Add(new SQLiteParameter("@MepElementTypeName", (object)DBNull.Value));
+                    var pMepFamilyName = cmd.Parameters.Add(new SQLiteParameter("@MepElementFamilyName", (object)DBNull.Value));
+                    var pMepSysType = cmd.Parameters.Add(new SQLiteParameter("@MepSystemType", (object)DBNull.Value));
+                    var pMepServType = cmd.Parameters.Add(new SQLiteParameter("@MepServiceType", (object)DBNull.Value));
+                    var pElevLevel = cmd.Parameters.Add(new SQLiteParameter("@ElevationFromLevel", (object)DBNull.Value));
+                    var pMarked = cmd.Parameters.Add(new SQLiteParameter("@MarkedForClusterProcess", (object)DBNull.Value));
+                    var pIsClusteredFlag = cmd.Parameters.Add(new SQLiteParameter("@IsClusteredFlag", (object)DBNull.Value));
+                    var pIsCurrent = cmd.Parameters.Add(new SQLiteParameter("@IsCurrentClashFlag", (object)DBNull.Value));
 
                     foreach (var zone in validZones)
                     {
@@ -953,6 +963,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                         pMepServType.Value = zone.MepServiceType ?? (object)DBNull.Value;
                         pElevLevel.Value = zone.ElevationFromLevel;
                         pMarked.Value = (zone.MarkedForClusterProcess ?? true) ? 1 : 0; // Default to TRUE for population
+                        pIsClusteredFlag.Value = zone.IsClusteredFlag ? 1 : 0;
                         pIsCurrent.Value = zone.IsCurrentClash ? 1 : 0;
                         cmd.ExecuteNonQuery();
                     }
@@ -984,6 +995,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                             MepServiceType = (SELECT MepServiceType FROM BulkUpdateZones WHERE BulkUpdateZones.ClashZoneId = ClashZones.ClashZoneId),
                             ElevationFromLevel = (SELECT ElevationFromLevel FROM BulkUpdateZones WHERE BulkUpdateZones.ClashZoneId = ClashZones.ClashZoneId),
                             MarkedForClusterProcess = (SELECT MarkedForClusterProcess FROM BulkUpdateZones WHERE BulkUpdateZones.ClashZoneId = ClashZones.ClashZoneId),
+                            IsClusteredFlag = (SELECT IsClusteredFlag FROM BulkUpdateZones WHERE BulkUpdateZones.ClashZoneId = ClashZones.ClashZoneId),
                             IsCurrentClashFlag = (SELECT IsCurrentClashFlag FROM BulkUpdateZones WHERE BulkUpdateZones.ClashZoneId = ClashZones.ClashZoneId),
                             UpdatedAt = CURRENT_TIMESTAMP
                         WHERE ClashZoneId IN (SELECT ClashZoneId FROM BulkUpdateZones)";
@@ -1126,7 +1138,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                             pClusterInstanceId.Value = update.ClusterInstanceId;
                             pIsCurrentClash.Value = update.IsCurrentClashFlag ? 1 : 0;
                             pIsClusteredFlag.Value = update.IsClusteredFlag ? 1 : 0;
-                            pMarkedForClusterProcess.Value = (object)(update.MarkedForClusterProcess.HasValue ? (update.MarkedForClusterProcess.Value ? 1 : 0) : DBNull.Value);
+                            pMarkedForClusterProcess.Value = update.MarkedForClusterProcess.HasValue ? (update.MarkedForClusterProcess.Value ? 1 : 0) : 0;
                             pAfterClusterSleeveId.Value = update.AfterClusterSleeveId;
                             pSleeveWidth.Value = update.SleeveWidth;
                             pSleeveHeight.Value = update.SleeveHeight;
@@ -1265,8 +1277,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                     var comboId = comboMap[zone.Id];
 
                     // Extract values
-                    var mepId = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-                    var hostId = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+                    var mepId = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+                    var hostId = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
                     var interX = zone.IntersectionPoint?.X ?? zone.IntersectionPointX;
                     var interY = zone.IntersectionPoint?.Y ?? zone.IntersectionPointY;
                     var interZ = zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ;
@@ -1902,8 +1914,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                     {
                         var zone = currentBatch[j];
                         var comboId = comboMap[zone.Id];
-                        var mepId = zone.MepElementId?.IntegerValue ?? zone.MepElementIdValue;
-                        var hostId = zone.StructuralElementId?.IntegerValue ?? zone.StructuralElementIdValue;
+                        var mepId = zone.MepElementId?.GetIdInt() ?? zone.MepElementIdValue;
+                        var hostId = zone.StructuralElementId?.GetIdInt() ?? zone.StructuralElementIdValue;
                         var interX = zone.IntersectionPoint?.X ?? zone.IntersectionPointX;
                         var interY = zone.IntersectionPoint?.Y ?? zone.IntersectionPointY;
                         var interZ = zone.IntersectionPoint?.Z ?? zone.IntersectionPointZ;
@@ -2591,8 +2603,8 @@ namespace JSE_Parameter_Service.Data.Repositories
             {
                 cmd.Transaction = transaction;
 
-                var mepElementId = clashZone.MepElementId?.IntegerValue ?? clashZone.MepElementIdValue;
-                var hostElementId = clashZone.StructuralElementId?.IntegerValue ?? clashZone.StructuralElementIdValue;
+                var mepElementId = clashZone.MepElementId?.GetIdInt() ?? clashZone.MepElementIdValue;
+                var hostElementId = clashZone.StructuralElementId?.GetIdInt() ?? clashZone.StructuralElementIdValue;
                 var intersectionX = clashZone.IntersectionPoint?.X ?? clashZone.IntersectionPointX;
                 var intersectionY = clashZone.IntersectionPoint?.Y ?? clashZone.IntersectionPointY;
                 var intersectionZ = clashZone.IntersectionPoint?.Z ?? clashZone.IntersectionPointZ;
@@ -2986,8 +2998,8 @@ namespace JSE_Parameter_Service.Data.Repositories
             else if (clashZone.IsResolvedFlag && clashZone.SleeveInstanceId > 0)
                 sleeveState = 1; // IndividualPlaced
 
-            var mepElementId = clashZone.MepElementId?.IntegerValue ?? clashZone.MepElementIdValue;
-            var hostElementId = clashZone.StructuralElementId?.IntegerValue ?? clashZone.StructuralElementIdValue;
+            var mepElementId = clashZone.MepElementId?.GetIdInt() ?? clashZone.MepElementIdValue;
+            var hostElementId = clashZone.StructuralElementId?.GetIdInt() ?? clashZone.StructuralElementIdValue;
             var intersectionPoint = clashZone.IntersectionPoint;
             var orientationX = clashZone.MepElementOrientationX;
             var orientationY = clashZone.MepElementOrientationY;
@@ -2999,11 +3011,11 @@ namespace JSE_Parameter_Service.Data.Repositories
                 ComputePlanarOrientationAngles(orientationX, orientationY, orientationDirection);
             var activePoint = clashZone.SleevePlacementPointActiveDocument;
             var markedForCluster = clashZone.MarkedForClusterProcess.HasValue
-                ? (object)(clashZone.MarkedForClusterProcess.Value ? 1 : 0)
-                : DBNull.Value;
-            var isClustered = clashZone.MarkedForClusterProcess.HasValue
-                ? (object)(clashZone.MarkedForClusterProcess.Value ? 1 : 0)
-                : DBNull.Value;
+                ? (clashZone.MarkedForClusterProcess.Value ? 1 : 0)
+                : 0;
+            var isClustered = clashZone.IsClusteredFlag
+                ? 1
+                : 0;
 
             cmd.Parameters.AddWithValue("@ComboId", comboId);
             cmd.Parameters.AddWithValue("@MepElementId", mepElementId);
@@ -3220,7 +3232,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                 // ✅ LOGGING: Log filtered parameters for debugging
                 if (filteredOut.Count > 0 && !DeploymentConfiguration.DeploymentMode)
                 {
-                    _logger($"[SQLite] ⚠️ Filtered out {filteredOut.Count} empty MEP parameters for zone {clashZone.Id} (MEP={clashZone.MepElementId?.IntegerValue ?? clashZone.MepElementIdValue}): {string.Join(", ", filteredOut)}");
+                    _logger($"[SQLite] ⚠️ Filtered out {filteredOut.Count} empty MEP parameters for zone {clashZone.Id} (MEP={clashZone.MepElementId?.GetIdInt() ?? clashZone.MepElementIdValue}): {string.Join(", ", filteredOut)}");
                 }
 
                 // ✅ LOGGING: Log parameter count comparison
@@ -3278,7 +3290,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                 // ✅ LOGGING: Log filtered parameters for debugging
                 if (filteredOutHost.Count > 0 && !DeploymentConfiguration.DeploymentMode)
                 {
-                    _logger($"[SQLite] ⚠️ Filtered out {filteredOutHost.Count} empty Host parameters for zone {clashZone.Id} (Host={clashZone.StructuralElementId?.IntegerValue ?? clashZone.StructuralElementIdValue}): {string.Join(", ", filteredOutHost)}");
+                    _logger($"[SQLite] ⚠️ Filtered out {filteredOutHost.Count} empty Host parameters for zone {clashZone.Id} (Host={clashZone.StructuralElementId?.GetIdInt() ?? clashZone.StructuralElementIdValue}): {string.Join(", ", filteredOutHost)}");
                 }
 
                 if (hostDict.Count > 0)
@@ -4492,7 +4504,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                     // MEP_ElementId is required for parameter transfer command to work correctly
                     // For individual sleeves, use the zone's MepElementId
                     // For cluster sleeves, this will be aggregated (comma-separated) below
-                    if (!useHost && zone.MepElementId != null && zone.MepElementId.IntegerValue > 0)
+                    if (!useHost && zone.MepElementId != null && zone.MepElementId.GetIdInt() > 0)
                     {
                         // Check if MEP_ElementId already exists in bag
                         bool hasMepElementId = bag.Any(kv => kv != null &&
@@ -4503,7 +4515,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                             bag.Add(new Models.SerializableKeyValue
                             {
                                 Key = "MEP_ElementId",
-                                Value = zone.MepElementId.IntegerValue.ToString()
+                                Value = zone.MepElementId.GetIdInt().ToString()
                             });
                         }
                     }
@@ -7210,8 +7222,8 @@ namespace JSE_Parameter_Service.Data.Repositories
                     cmd.Transaction = transaction;
                     cmd.CommandText = "UPDATE ClashZones SET SleeveFamilyName = @FamilyName, UpdatedAt = CURRENT_TIMESTAMP WHERE UPPER(ClashZoneGuid) = UPPER(@ClashZoneGuid)";
 
-                    cmd.Parameters.Add("@FamilyName", System.Data.DbType.String);
-                    cmd.Parameters.Add("@ClashZoneGuid", System.Data.DbType.String);
+                    cmd.Parameters.Add(new SQLiteParameter("@FamilyName", (object)DBNull.Value));
+                    cmd.Parameters.Add(new SQLiteParameter("@ClashZoneGuid", (object)DBNull.Value));
 
                     cmd.Parameters["@FamilyName"].Value = familyName ?? string.Empty;
 
@@ -7389,35 +7401,35 @@ namespace JSE_Parameter_Service.Data.Repositories
                                AND ClashZoneGuid != '' AND ClashZoneGuid IS NOT NULL";
 
                         // ✅ PREPARED STATEMENT: Create parameters once, reuse for all updates
-                        var pGuid = cmd.Parameters.Add("@ClashZoneGuid", System.Data.DbType.String);
-                        var pSleeveId = cmd.Parameters.Add("@SleeveInstanceId", System.Data.DbType.Int32);
-                        var pWidth = cmd.Parameters.Add("@SleeveWidth", System.Data.DbType.Double);
-                        var pHeight = cmd.Parameters.Add("@SleeveHeight", System.Data.DbType.Double);
-                        var pDiameter = cmd.Parameters.Add("@SleeveDiameter", System.Data.DbType.Double);
-                        var pX = cmd.Parameters.Add("@SleevePlacementX", System.Data.DbType.Double);
-                        var pY = cmd.Parameters.Add("@SleevePlacementY", System.Data.DbType.Double);
-                        var pZ = cmd.Parameters.Add("@SleevePlacementZ", System.Data.DbType.Double);
-                        var pActiveX = cmd.Parameters.Add("@SleevePlacementActiveX", System.Data.DbType.Double);
-                        var pActiveY = cmd.Parameters.Add("@SleevePlacementActiveY", System.Data.DbType.Double);
-                        var pActiveZ = cmd.Parameters.Add("@SleevePlacementActiveZ", System.Data.DbType.Double);
-                        var pRotRad = cmd.Parameters.Add("@MepRotationAngleRad", System.Data.DbType.Double);
-                        var pRotDeg = cmd.Parameters.Add("@MepRotationAngleDeg", System.Data.DbType.Double);
-                        var pRotCos = cmd.Parameters.Add("@MepRotationCos", System.Data.DbType.Double);
-                        var pRotSin = cmd.Parameters.Add("@MepRotationSin", System.Data.DbType.Double);
-                        var pFamily = cmd.Parameters.Add("@SleeveFamilyName", System.Data.DbType.String);
+                        var pGuid = cmd.Parameters.Add(new SQLiteParameter("@ClashZoneGuid", (object)DBNull.Value));
+                        var pSleeveId = cmd.Parameters.Add(new SQLiteParameter("@SleeveInstanceId", (object)DBNull.Value));
+                        var pWidth = cmd.Parameters.Add(new SQLiteParameter("@SleeveWidth", (object)DBNull.Value));
+                        var pHeight = cmd.Parameters.Add(new SQLiteParameter("@SleeveHeight", (object)DBNull.Value));
+                        var pDiameter = cmd.Parameters.Add(new SQLiteParameter("@SleeveDiameter", (object)DBNull.Value));
+                        var pX = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementX", (object)DBNull.Value));
+                        var pY = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementY", (object)DBNull.Value));
+                        var pZ = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementZ", (object)DBNull.Value));
+                        var pActiveX = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementActiveX", (object)DBNull.Value));
+                        var pActiveY = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementActiveY", (object)DBNull.Value));
+                        var pActiveZ = cmd.Parameters.Add(new SQLiteParameter("@SleevePlacementActiveZ", (object)DBNull.Value));
+                        var pRotRad = cmd.Parameters.Add(new SQLiteParameter("@MepRotationAngleRad", (object)DBNull.Value));
+                        var pRotDeg = cmd.Parameters.Add(new SQLiteParameter("@MepRotationAngleDeg", (object)DBNull.Value));
+                        var pRotCos = cmd.Parameters.Add(new SQLiteParameter("@MepRotationCos", (object)DBNull.Value));
+                        var pRotSin = cmd.Parameters.Add(new SQLiteParameter("@MepRotationSin", (object)DBNull.Value));
+                        var pFamily = cmd.Parameters.Add(new SQLiteParameter("@SleeveFamilyName", (object)DBNull.Value));
                         
                         // ✅ CRITICAL FIX: Add missing parameters
-                        var pStatus = cmd.Parameters.Add("@PlacementStatus", System.Data.DbType.String);
-                        var pCalcWidth = cmd.Parameters.Add("@CalculatedSleeveWidth", System.Data.DbType.Double);
-                        var pCalcHeight = cmd.Parameters.Add("@CalculatedSleeveHeight", System.Data.DbType.Double);
-                        var pCalcDiameter = cmd.Parameters.Add("@CalculatedSleeveDiameter", System.Data.DbType.Double);
-                        var pCalcDepth = cmd.Parameters.Add("@CalculatedSleeveDepth", System.Data.DbType.Double);
-                        var pCalcRot = cmd.Parameters.Add("@CalculatedRotation", System.Data.DbType.Double);
-                        var pCalcX = cmd.Parameters.Add("@CalculatedPlacementX", System.Data.DbType.Double);
-                        var pCalcY = cmd.Parameters.Add("@CalculatedPlacementY", System.Data.DbType.Double);
-                        var pCalcZ = cmd.Parameters.Add("@CalculatedPlacementZ", System.Data.DbType.Double);
-                        var pCalcFamily = cmd.Parameters.Add("@CalculatedFamilyName", System.Data.DbType.String);
-                        var pValStatus = cmd.Parameters.Add("@ValidationStatus", System.Data.DbType.String);
+                        var pStatus = cmd.Parameters.Add(new SQLiteParameter("@PlacementStatus", (object)DBNull.Value));
+                        var pCalcWidth = cmd.Parameters.Add(new SQLiteParameter("@CalculatedSleeveWidth", (object)DBNull.Value));
+                        var pCalcHeight = cmd.Parameters.Add(new SQLiteParameter("@CalculatedSleeveHeight", (object)DBNull.Value));
+                        var pCalcDiameter = cmd.Parameters.Add(new SQLiteParameter("@CalculatedSleeveDiameter", (object)DBNull.Value));
+                        var pCalcDepth = cmd.Parameters.Add(new SQLiteParameter("@CalculatedSleeveDepth", (object)DBNull.Value));
+                        var pCalcRot = cmd.Parameters.Add(new SQLiteParameter("@CalculatedRotation", (object)DBNull.Value));
+                        var pCalcX = cmd.Parameters.Add(new SQLiteParameter("@CalculatedPlacementX", (object)DBNull.Value));
+                        var pCalcY = cmd.Parameters.Add(new SQLiteParameter("@CalculatedPlacementY", (object)DBNull.Value));
+                        var pCalcZ = cmd.Parameters.Add(new SQLiteParameter("@CalculatedPlacementZ", (object)DBNull.Value));
+                        var pCalcFamily = cmd.Parameters.Add(new SQLiteParameter("@CalculatedFamilyName", (object)DBNull.Value));
+                        var pValStatus = cmd.Parameters.Add(new SQLiteParameter("@ValidationStatus", (object)DBNull.Value));
 
                         foreach (var u in updateList)
                         {
@@ -7518,18 +7530,18 @@ namespace JSE_Parameter_Service.Data.Repositories
                             WHERE UPPER(ClashZoneGuid) = UPPER(@ClashZoneGuid)
                                AND ClashZoneGuid != '' AND ClashZoneGuid IS NOT NULL";
 
-                        var pGuid = cmd.Parameters.Add("@ClashZoneGuid", System.Data.DbType.String);
-                        var pClusterId = cmd.Parameters.Add("@ClusterInstanceId", System.Data.DbType.Int32);
-                        var pWidth = cmd.Parameters.Add("@SleeveWidth", System.Data.DbType.Double);
-                        var pHeight = cmd.Parameters.Add("@SleeveHeight", System.Data.DbType.Double);
-                        var pDiameter = cmd.Parameters.Add("@SleeveDiameter", System.Data.DbType.Double);
-                        var pMinX = cmd.Parameters.Add("@BoundingBoxMinX", System.Data.DbType.Double);
-                        var pMinY = cmd.Parameters.Add("@BoundingBoxMinY", System.Data.DbType.Double);
-                        var pMinZ = cmd.Parameters.Add("@BoundingBoxMinZ", System.Data.DbType.Double);
-                        var pMaxX = cmd.Parameters.Add("@BoundingBoxMaxX", System.Data.DbType.Double);
-                        var pMaxY = cmd.Parameters.Add("@BoundingBoxMaxY", System.Data.DbType.Double);
-                        var pMaxZ = cmd.Parameters.Add("@BoundingBoxMaxZ", System.Data.DbType.Double);
-                        var pFamily = cmd.Parameters.Add("@SleeveFamilyName", System.Data.DbType.String);
+                        var pGuid = cmd.Parameters.Add(new SQLiteParameter("@ClashZoneGuid", (object)DBNull.Value));
+                        var pClusterId = cmd.Parameters.Add(new SQLiteParameter("@ClusterInstanceId", (object)DBNull.Value));
+                        var pWidth = cmd.Parameters.Add(new SQLiteParameter("@SleeveWidth", (object)DBNull.Value));
+                        var pHeight = cmd.Parameters.Add(new SQLiteParameter("@SleeveHeight", (object)DBNull.Value));
+                        var pDiameter = cmd.Parameters.Add(new SQLiteParameter("@SleeveDiameter", (object)DBNull.Value));
+                        var pMinX = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMinX", (object)DBNull.Value));
+                        var pMinY = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMinY", (object)DBNull.Value));
+                        var pMinZ = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMinZ", (object)DBNull.Value));
+                        var pMaxX = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMaxX", (object)DBNull.Value));
+                        var pMaxY = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMaxY", (object)DBNull.Value));
+                        var pMaxZ = cmd.Parameters.Add(new SQLiteParameter("@BoundingBoxMaxZ", (object)DBNull.Value));
+                        var pFamily = cmd.Parameters.Add(new SQLiteParameter("@SleeveFamilyName", (object)DBNull.Value));
 
                         foreach (var u in updateList)
                         {
@@ -7596,19 +7608,19 @@ namespace JSE_Parameter_Service.Data.Repositories
                             WHERE UPPER(ClashZoneGuid) = UPPER(@Guid)
                               AND ClashZoneGuid != '' AND ClashZoneGuid IS NOT NULL";
 
-                        var pGuid = cmd.Parameters.Add("@Guid", System.Data.DbType.String);
-                        var pC1X = cmd.Parameters.Add("@c1x", System.Data.DbType.Double);
-                        var pC1Y = cmd.Parameters.Add("@c1y", System.Data.DbType.Double);
-                        var pC1Z = cmd.Parameters.Add("@c1z", System.Data.DbType.Double);
-                        var pC2X = cmd.Parameters.Add("@c2x", System.Data.DbType.Double);
-                        var pC2Y = cmd.Parameters.Add("@c2y", System.Data.DbType.Double);
-                        var pC2Z = cmd.Parameters.Add("@c2z", System.Data.DbType.Double);
-                        var pC3X = cmd.Parameters.Add("@c3x", System.Data.DbType.Double);
-                        var pC3Y = cmd.Parameters.Add("@c3y", System.Data.DbType.Double);
-                        var pC3Z = cmd.Parameters.Add("@c3z", System.Data.DbType.Double);
-                        var pC4X = cmd.Parameters.Add("@c4x", System.Data.DbType.Double);
-                        var pC4Y = cmd.Parameters.Add("@c4y", System.Data.DbType.Double);
-                        var pC4Z = cmd.Parameters.Add("@c4z", System.Data.DbType.Double);
+                        var pGuid = cmd.Parameters.Add(new SQLiteParameter("@Guid", (object)DBNull.Value));
+                        var pC1X = cmd.Parameters.Add(new SQLiteParameter("@c1x", (object)DBNull.Value));
+                        var pC1Y = cmd.Parameters.Add(new SQLiteParameter("@c1y", (object)DBNull.Value));
+                        var pC1Z = cmd.Parameters.Add(new SQLiteParameter("@c1z", (object)DBNull.Value));
+                        var pC2X = cmd.Parameters.Add(new SQLiteParameter("@c2x", (object)DBNull.Value));
+                        var pC2Y = cmd.Parameters.Add(new SQLiteParameter("@c2y", (object)DBNull.Value));
+                        var pC2Z = cmd.Parameters.Add(new SQLiteParameter("@c2z", (object)DBNull.Value));
+                        var pC3X = cmd.Parameters.Add(new SQLiteParameter("@c3x", (object)DBNull.Value));
+                        var pC3Y = cmd.Parameters.Add(new SQLiteParameter("@c3y", (object)DBNull.Value));
+                        var pC3Z = cmd.Parameters.Add(new SQLiteParameter("@c3z", (object)DBNull.Value));
+                        var pC4X = cmd.Parameters.Add(new SQLiteParameter("@c4x", (object)DBNull.Value));
+                        var pC4Y = cmd.Parameters.Add(new SQLiteParameter("@c4y", (object)DBNull.Value));
+                        var pC4Z = cmd.Parameters.Add(new SQLiteParameter("@c4z", (object)DBNull.Value));
 
                         foreach (var item in updates)
                         {
@@ -7928,11 +7940,11 @@ namespace JSE_Parameter_Service.Data.Repositories
 
                         // Bulk insert targets
                         cmd.CommandText = "INSERT INTO TargetPoints (MepId, HostId, X, Y, Z) VALUES (@MepId, @HostId, @X, @Y, @Z)";
-                        var pMep = cmd.Parameters.Add("@MepId", System.Data.DbType.Int32);
-                        var pHost = cmd.Parameters.Add("@HostId", System.Data.DbType.Int32);
-                        var pX = cmd.Parameters.Add("@X", System.Data.DbType.Double);
-                        var pY = cmd.Parameters.Add("@Y", System.Data.DbType.Double);
-                        var pZ = cmd.Parameters.Add("@Z", System.Data.DbType.Double);
+                        var pMep = cmd.Parameters.Add(new SQLiteParameter("@MepId", (object)DBNull.Value));
+                        var pHost = cmd.Parameters.Add(new SQLiteParameter("@HostId", (object)DBNull.Value));
+                        var pX = cmd.Parameters.Add(new SQLiteParameter("@X", (object)DBNull.Value));
+                        var pY = cmd.Parameters.Add(new SQLiteParameter("@Y", (object)DBNull.Value));
+                        var pZ = cmd.Parameters.Add(new SQLiteParameter("@Z", (object)DBNull.Value));
 
                         foreach (var target in targetsList)
                         {
@@ -8131,23 +8143,23 @@ namespace JSE_Parameter_Service.Data.Repositories
                                     @IsCombinedResolved, @IsCurrentClashFlag
                                 )";
 
-                        var guidParam = insertCmd.Parameters.Add("@ClashZoneGuid", System.Data.DbType.String);
-                        var isResolvedParam = insertCmd.Parameters.Add("@IsResolvedFlag", System.Data.DbType.Int32);
-                        var isClusterResolvedParam = insertCmd.Parameters.Add("@IsClusterResolvedFlag", System.Data.DbType.Int32);
-                        var isCombinedResolvedParam = insertCmd.Parameters.Add("@IsCombinedResolved", System.Data.DbType.Int32);
-                        var sleeveIdParam = insertCmd.Parameters.Add("@SleeveInstanceId", System.Data.DbType.Int32);
-                        var clusterIdParam = insertCmd.Parameters.Add("@ClusterInstanceId", System.Data.DbType.Int32);
-                        var oldSleeveIdParam = insertCmd.Parameters.Add("@OldSleeveInstanceId", System.Data.DbType.Int32);
-                        var oldClusterIdParam = insertCmd.Parameters.Add("@OldClusterInstanceId", System.Data.DbType.Int32);
-                        var mepIdParam = insertCmd.Parameters.Add("@MepElementId", System.Data.DbType.Int32);
-                        var hostIdParam = insertCmd.Parameters.Add("@HostElementId", System.Data.DbType.Int32);
-                        var intersectionXParam = insertCmd.Parameters.Add("@IntersectionX", System.Data.DbType.Double);
-                        var intersectionYParam = insertCmd.Parameters.Add("@IntersectionY", System.Data.DbType.Double);
-                        var intersectionZParam = insertCmd.Parameters.Add("@IntersectionZ", System.Data.DbType.Double);
-                        var markedForClusterParam = insertCmd.Parameters.Add("@MarkedForClusterProcess", System.Data.DbType.Int32);
-                        var afterClusterSleeveIdParam = insertCmd.Parameters.Add("@AfterClusterSleeveId", System.Data.DbType.Int32);
-                        var isClusteredFlagParam = insertCmd.Parameters.Add("@IsClusteredFlag", System.Data.DbType.Int32);
-                        var isCurrentClashFlagParam = insertCmd.Parameters.Add("@IsCurrentClashFlag", System.Data.DbType.Int32);
+                        var guidParam = insertCmd.Parameters.Add(new SQLiteParameter("@ClashZoneGuid", (object)DBNull.Value));
+                        var isResolvedParam = insertCmd.Parameters.Add(new SQLiteParameter("@IsResolvedFlag", (object)DBNull.Value));
+                        var isClusterResolvedParam = insertCmd.Parameters.Add(new SQLiteParameter("@IsClusterResolvedFlag", (object)DBNull.Value));
+                        var isCombinedResolvedParam = insertCmd.Parameters.Add(new SQLiteParameter("@IsCombinedResolved", (object)DBNull.Value));
+                        var sleeveIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@SleeveInstanceId", (object)DBNull.Value));
+                        var clusterIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@ClusterInstanceId", (object)DBNull.Value));
+                        var oldSleeveIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@OldSleeveInstanceId", (object)DBNull.Value));
+                        var oldClusterIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@OldClusterInstanceId", (object)DBNull.Value));
+                        var mepIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@MepElementId", (object)DBNull.Value));
+                        var hostIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@HostElementId", (object)DBNull.Value));
+                        var intersectionXParam = insertCmd.Parameters.Add(new SQLiteParameter("@IntersectionX", (object)DBNull.Value));
+                        var intersectionYParam = insertCmd.Parameters.Add(new SQLiteParameter("@IntersectionY", (object)DBNull.Value));
+                        var intersectionZParam = insertCmd.Parameters.Add(new SQLiteParameter("@IntersectionZ", (object)DBNull.Value));
+                        var markedForClusterParam = insertCmd.Parameters.Add(new SQLiteParameter("@MarkedForClusterProcess", (object)DBNull.Value));
+                        var afterClusterSleeveIdParam = insertCmd.Parameters.Add(new SQLiteParameter("@AfterClusterSleeveId", (object)DBNull.Value));
+                        var isClusteredFlagParam = insertCmd.Parameters.Add(new SQLiteParameter("@IsClusteredFlag", (object)DBNull.Value));
+                        var isCurrentClashFlagParam = insertCmd.Parameters.Add(new SQLiteParameter("@IsCurrentClashFlag", (object)DBNull.Value));
 
                         insertCmd.Prepare();
 
@@ -8170,11 +8182,11 @@ namespace JSE_Parameter_Service.Data.Repositories
                             intersectionXParam.Value = update.IntersectionPointX;
                             intersectionYParam.Value = update.IntersectionPointY;
                             intersectionZParam.Value = update.IntersectionPointZ;
-                            markedForClusterParam.Value = update.MarkedForClusterProcess.HasValue ? (object)(update.MarkedForClusterProcess.Value ? 1 : 0) : DBNull.Value;
+                            markedForClusterParam.Value = update.MarkedForClusterProcess.HasValue ? (object)(update.MarkedForClusterProcess.Value ? 1 : 0) : 0;
                             
                             // ✅ USER REQUEST: AfterClusterSleeveId should also preserve -1 if provided
-                            afterClusterSleeveIdParam.Value = update.AfterClusterSleeveId != 0 ? (object)update.AfterClusterSleeveId : DBNull.Value;
-                            isClusteredFlagParam.Value = update.IsClusteredFlag.HasValue ? (object)(update.IsClusteredFlag.Value ? 1 : 0) : DBNull.Value;
+                            afterClusterSleeveIdParam.Value = update.AfterClusterSleeveId != 0 ? update.AfterClusterSleeveId : -1;
+                            isClusteredFlagParam.Value = update.IsClusteredFlag.HasValue ? (object)(update.IsClusteredFlag.Value ? 1 : 0) : 0;
                             isCurrentClashFlagParam.Value = DBNull.Value; // Standard BatchUpdateFlags doesn't set this from the input tuple, but we use the column to preserve state
 
                             insertCmd.ExecuteNonQuery();
@@ -8279,9 +8291,9 @@ namespace JSE_Parameter_Service.Data.Repositories
                                 indUpdateCmd.Parameters.AddWithValue("@IsCombinedResolved", update.IsCombinedResolved ? 1 : 0);
                                 indUpdateCmd.Parameters.AddWithValue("@SleeveInstanceId", update.SleeveInstanceId > 0 ? (object)update.SleeveInstanceId : DBNull.Value);
                                 indUpdateCmd.Parameters.AddWithValue("@ClusterInstanceId", update.ClusterInstanceId > 0 ? (object)update.ClusterInstanceId : DBNull.Value);
-                                indUpdateCmd.Parameters.AddWithValue("@MarkedForClusterProcess", update.MarkedForClusterProcess.HasValue ? (object)(update.MarkedForClusterProcess.Value ? 1 : 0) : DBNull.Value);
-                                indUpdateCmd.Parameters.AddWithValue("@AfterClusterSleeveId", update.AfterClusterSleeveId > 0 ? (object)update.AfterClusterSleeveId : DBNull.Value);
-                                indUpdateCmd.Parameters.AddWithValue("@IsClusteredFlag", update.IsClusteredFlag.HasValue ? (object)(update.IsClusteredFlag.Value ? 1 : 0) : DBNull.Value);
+                                indUpdateCmd.Parameters.AddWithValue("@MarkedForClusterProcess", update.MarkedForClusterProcess.HasValue ? (update.MarkedForClusterProcess.Value ? 1 : 0) : 0);
+                                indUpdateCmd.Parameters.AddWithValue("@AfterClusterSleeveId", update.AfterClusterSleeveId > 0 ? update.AfterClusterSleeveId : -1);
+                                indUpdateCmd.Parameters.AddWithValue("@IsClusteredFlag", update.IsClusteredFlag.HasValue ? (update.IsClusteredFlag.Value ? 1 : 0) : 0);
 
                                 indUpdateCmd.ExecuteNonQuery();
                             }
@@ -8832,7 +8844,7 @@ namespace JSE_Parameter_Service.Data.Repositories
             };
         }
 
-        private ClusterSleeve MapClusterSleeve(System.Data.SQLite.SQLiteDataReader reader)
+        private ClusterSleeve MapClusterSleeve(SQLiteDataReader reader)
         {
             return new ClusterSleeve
             {

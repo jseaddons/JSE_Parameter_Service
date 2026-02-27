@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Electrical;
@@ -22,7 +22,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
             if (element == null) return false;
 
             // Check Category
-            var builtinCat = (BuiltInCategory)element.Category.Id.IntegerValue;
+            var builtinCat = (BuiltInCategory)element.Category.Id.GetIdInt();
             bool isCategoryMatch = builtinCat == BuiltInCategory.OST_DuctCurves ||
                                    builtinCat == BuiltInCategory.OST_CableTray;
 
@@ -88,7 +88,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
                     StorageType.Double => param.AsDouble(),
                     StorageType.Integer => param.AsInteger(),
                     StorageType.String => param.AsString(),
-                    StorageType.ElementId => param.AsElementId()?.IntegerValue,
+                    StorageType.ElementId => param.AsElementId()?.GetIdInt(),
                     _ => null
                 };
 
@@ -162,3 +162,4 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
         }
     }
 }
+

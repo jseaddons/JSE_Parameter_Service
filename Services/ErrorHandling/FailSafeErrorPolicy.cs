@@ -95,7 +95,9 @@ namespace JSE_Parameter_Service.Services.ErrorHandling
                 ArgumentNullException => "Warning",
                 ArgumentException => "Warning",
                 InvalidOperationException => "Error",
-                System.Data.SQLite.SQLiteException => "Error",
+                // SQLiteException covers both System.Data.SQLite and Microsoft.Data.Sqlite
+                Exception ex when ex.GetType().Name.Contains("SqliteException") 
+                               || ex.GetType().Name.Contains("SQLiteException") => "Error",
                 _ => "Error"
             };
         }

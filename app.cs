@@ -38,8 +38,32 @@ namespace JSE_Parameter_Service
                 "Parameter\nTransfer", 
                 assemblyPath, 
                 "JSE_Parameter_Service.Commands.ParameterTransferCommand"); // Note: Namespace might need adjustment if Commands are in JSE_Parameter_Service.Commands
-            panel.AddItem(buttonData);
+            PushButton button = panel.AddItem(buttonData) as PushButton;
+            if (button != null)
+            {
+                button.LargeImage = LoadIconImage("JSE_Parameter_Service.Resources.Icons.RibbonIcon32.png");
+                button.Image = LoadIconImage("JSE_Parameter_Service.Resources.Icons.RibbonIcon16.png");
+                button.ToolTip = "Transfer parameters from MEP elements to openings.";
+            }
+
             return Result.Succeeded;
+        }
+
+        private System.Windows.Media.ImageSource? LoadIconImage(string resourceName)
+        {
+            try
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null) return null;
+                    var decoder = new System.Windows.Media.Imaging.PngBitmapDecoder(stream, 
+                        System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat, 
+                        System.Windows.Media.Imaging.BitmapCacheOption.Default);
+                    return decoder.Frames[0];
+                }
+            }
+            catch { return null; }
         }
 
         public Result OnShutdown(UIControlledApplication application)

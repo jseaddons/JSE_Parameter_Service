@@ -1,4 +1,4 @@
-using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,7 +43,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 ElementFilter hostFilter;
                 var hostIds = hostElements.Select(e => e.Id).ToList();
                 
-                // ✅ PRIORITY 1 OPTIMIZATION: Use BoundingBoxIntersectsFilter instead of ElementIntersectsSolidFilter
+                // âœ… PRIORITY 1 OPTIMIZATION: Use BoundingBoxIntersectsFilter instead of ElementIntersectsSolidFilter
                 // BoundingBoxIntersectsFilter is 20-30% faster (no geometry extraction required)
                 if (OptimizationFlags.UseBoundingBoxSectionBoxFilter)
                 {
@@ -66,14 +66,14 @@ namespace JSE_Parameter_Service.Services.Helpers
                     hostFilter = new ElementIntersectsSolidFilter(sectionBoxSolid);
                 }
                 
-                DebugLogger.Info($"[SectionBoxDiag] Host elements count={hostElements.Count}, sampleIds={string.Join(",", hostIds.Take(6).Select(id => id.IntegerValue.ToString()))}");
+                DebugLogger.Info($"[SectionBoxDiag] Host elements count={hostElements.Count}, sampleIds={string.Join(",", hostIds.Take(6).Select(id => id.GetIdInt().ToString()))}");
                 var passingHostIds = new FilteredElementCollector(uiDoc.Document, hostIds)
                     .WherePasses(hostFilter)
                     .ToElementIds();
                 
                 DebugLogger.Info($"[SectionBoxDiag] ElementIntersectsSolidFilter returned {passingHostIds.Count} passing elements");
                 
-                // ✅ CRITICAL FIX: Manual fallback if filter fails
+                // âœ… CRITICAL FIX: Manual fallback if filter fails
                 // ElementIntersectsSolidFilter sometimes fails for family instances
                 // Use manual bounding box intersection check as fallback
                 if (passingHostIds.Count == 0 && hostElements.Count > 0)
@@ -91,11 +91,11 @@ namespace JSE_Parameter_Service.Services.Helpers
                                 elemBBox.Min, elemBBox.Max))
                             {
                                 manualPassingIds.Add(elem.Id);
-                                DebugLogger.Info($"[SectionBoxDiag] ✅ Manual check: Element {elem.Id.IntegerValue} PASSES (BBox intersects)");
+                                DebugLogger.Info($"[SectionBoxDiag] âœ… Manual check: Element {elem.Id.GetIdInt()} PASSES (BBox intersects)");
                             }
                             else
                             {
-                                DebugLogger.Info($"[SectionBoxDiag] ❌ Manual check: Element {elem.Id.IntegerValue} FAILS (BBox does not intersect)");
+                                DebugLogger.Info($"[SectionBoxDiag] âŒ Manual check: Element {elem.Id.GetIdInt()} FAILS (BBox does not intersect)");
                             }
                         }
                         passingHostIds = manualPassingIds;
@@ -147,7 +147,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 {
                     ElementFilter linkFilter;
                     
-                    // ✅ PRIORITY 1 OPTIMIZATION: Use BoundingBoxIntersectsFilter instead of ElementIntersectsSolidFilter
+                    // âœ… PRIORITY 1 OPTIMIZATION: Use BoundingBoxIntersectsFilter instead of ElementIntersectsSolidFilter
                     // BoundingBoxIntersectsFilter is 20-30% faster (no geometry extraction required)
                     if (OptimizationFlags.UseBoundingBoxSectionBoxFilter)
                     {
@@ -195,7 +195,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                         // DebugLogger.Info($"[SectionBoxDiag] link='{group.Key}' passingCount={passingLinkIds.Count}");
                         foreach (var id in passingLinkIds.Take(3))
                         {
-                            var e = elementsInLink.FirstOrDefault(el => el.Id.IntegerValue == id.IntegerValue);
+                            var e = elementsInLink.FirstOrDefault(el => el.Id.GetIdInt() == id.GetIdInt());
                             if (e != null)
                             {
                                 var bbox = e.get_BoundingBox(null);
@@ -241,7 +241,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 
                 Transform transform = sectionBox.Transform;
                 
-                // ✅ CRITICAL FIX: Transform ALL 8 corners to handle rotation correctly
+                // âœ… CRITICAL FIX: Transform ALL 8 corners to handle rotation correctly
                 // Transforming just Min/Max works only if rotation is 0. For rotated boxes,
                 // the "Min" corner locally might not be the "Min" corner in World logic.
                 
@@ -330,3 +330,4 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
     }
 }
+

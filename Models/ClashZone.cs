@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
@@ -50,7 +50,7 @@ namespace JSE_Parameter_Service.Models
         /// </summary>
         public int MepElementIdValue
         {
-            get => MepElementId?.IntegerValue ?? -1;
+            get => MepElementId?.GetIdInt() ?? -1;
             set => MepElementId = value > 0 ? new ElementId(value) : ElementId.InvalidElementId;
         }
         
@@ -71,11 +71,11 @@ namespace JSE_Parameter_Service.Models
         /// </summary>
         public int StructuralElementIdValue
         {
-            get => StructuralElementId?.IntegerValue ?? -1;
+            get => StructuralElementId?.GetIdInt() ?? -1;
             set => StructuralElementId = value > 0 ? new ElementId(value) : ElementId.InvalidElementId;
         }
         
-        // ✅ FIX 3: Backing fields to store X/Y/Z independently of XYZ object (24 bytes total, not 48)
+        // âœ… FIX 3: Backing fields to store X/Y/Z independently of XYZ object (24 bytes total, not 48)
         // This prevents XML serialization from reading 0 when IntersectionPoint is (0,0,0) or null
         private double _intersectionPointX = 0.0;
         private double _intersectionPointY = 0.0;
@@ -83,7 +83,7 @@ namespace JSE_Parameter_Service.Models
         
         /// <summary>
         /// The intersection point where the clash occurs
-        /// ✅ FIX 3: Computed from backing fields to avoid duplicate storage (reduces memory by 24 bytes)
+        /// âœ… FIX 3: Computed from backing fields to avoid duplicate storage (reduces memory by 24 bytes)
         /// </summary>
         [XmlIgnore]
         public XYZ IntersectionPoint
@@ -91,7 +91,7 @@ namespace JSE_Parameter_Service.Models
             get => new XYZ(_intersectionPointX, _intersectionPointY, _intersectionPointZ);
             set
             {
-                // ✅ FIX 3: Only update backing fields, don't store XYZ object
+                // âœ… FIX 3: Only update backing fields, don't store XYZ object
                 _intersectionPointX = value?.X ?? 0.0;
                 _intersectionPointY = value?.Y ?? 0.0;
                 _intersectionPointZ = value?.Z ?? 0.0;
@@ -108,13 +108,13 @@ namespace JSE_Parameter_Service.Models
         }
 
         /// <summary>
-        /// ✅ SYSTEM TYPE: Specific system type extracted from MEP element (e.g., "Supply Air")
+        /// âœ… SYSTEM TYPE: Specific system type extracted from MEP element (e.g., "Supply Air")
         /// Stored as a dedicated column for fast prefix lookup
         /// </summary>
         public string MepSystemType { get; set; } = string.Empty;
 
         /// <summary>
-        /// ✅ SERVICE TYPE: Specific service type extracted from MEP element (mostly for Cable Trays)
+        /// âœ… SERVICE TYPE: Specific service type extracted from MEP element (mostly for Cable Trays)
         /// Stored as a dedicated column for fast prefix lookup
         /// </summary>
         public string MepServiceType { get; set; } = string.Empty;
@@ -138,7 +138,7 @@ namespace JSE_Parameter_Service.Models
             set => _intersectionPointZ = value;
         }
         
-        // ✅ WALL CENTERLINE POINT: Backing fields to store X/Y/Z independently of XYZ object
+        // âœ… WALL CENTERLINE POINT: Backing fields to store X/Y/Z independently of XYZ object
         // This is pre-calculated during refresh to avoid Revit API calls during placement (enables multi-threading)
         private double _wallCenterlinePointX = 0.0;
         private double _wallCenterlinePointY = 0.0;
@@ -146,8 +146,8 @@ namespace JSE_Parameter_Service.Models
         
         /// <summary>
         /// Pre-calculated wall centerline point (no Revit API access needed during placement)
-        /// ✅ CRITICAL: Calculated during refresh when wall element is available
-        /// ✅ PERFORMANCE: Enables multi-threaded placement point adjustment (no Revit API calls needed)
+        /// âœ… CRITICAL: Calculated during refresh when wall element is available
+        /// âœ… PERFORMANCE: Enables multi-threaded placement point adjustment (no Revit API calls needed)
         /// For dampers: This is the wall centerline point corresponding to the damper centroid
         /// </summary>
         [XmlIgnore]
@@ -190,7 +190,7 @@ namespace JSE_Parameter_Service.Models
         }
 
         /// <summary>
-        /// ✅ PERSISTENCE: The calculated Elevation from Level for the placed sleeve.
+        /// âœ… PERSISTENCE: The calculated Elevation from Level for the placed sleeve.
         /// Captures the value at placement time ("Capture Once") to avoid reliance on lazy Revit parameters.
         /// Formula: SleevePlacementPoint.Z - MepElementLevelElevation
         /// </summary>
@@ -203,7 +203,7 @@ namespace JSE_Parameter_Service.Models
         public BoundingBoxXYZ ClashBoundingBox { get; set; } = new BoundingBoxXYZ();
         
         /// <summary>
-        /// ✅ NEW: XML-serializable bounding box coordinates for clustering
+        /// âœ… NEW: XML-serializable bounding box coordinates for clustering
         /// These are calculated during sleeve placement and used for cheap proximity detection
         /// </summary>
         public double SleeveBoundingBoxMinX { get; set; } = 0.0;
@@ -214,7 +214,7 @@ namespace JSE_Parameter_Service.Models
         public double SleeveBoundingBoxMaxZ { get; set; } = 0.0;
         
         /// <summary>
-        /// ✅ RCS BOUNDING BOX: Wall-aligned Relative Coordinate System bounding boxes (for walls/framing only)
+        /// âœ… RCS BOUNDING BOX: Wall-aligned Relative Coordinate System bounding boxes (for walls/framing only)
         /// These are calculated and saved during individual sleeve placement for walls/framing
         /// RCS Definition:
         /// - RCS X-axis = Along wall direction (WallDirection vector)
@@ -236,7 +236,7 @@ namespace JSE_Parameter_Service.Models
         public double SleeveBoundingBoxRCS_MaxZ { get; set; } = 0.0;
         
         /// <summary>
-        /// ✅ ROTATED BBOX: Rotated bounding box coordinates for non-axis-aligned sleeves
+        /// âœ… ROTATED BBOX: Rotated bounding box coordinates for non-axis-aligned sleeves
         /// These are calculated and saved when MepElementRotationAngle is non-zero
         /// For axis-aligned sleeves, these remain NULL
         /// Used by cluster service to calculate cluster bounding boxes in rotated coordinate system
@@ -249,7 +249,7 @@ namespace JSE_Parameter_Service.Models
         public double? RotatedBoundingBoxMaxZ { get; set; }
         
         /// <summary>
-        /// ✅ SLEEVE CORNERS: Pre-calculated 4 corner coordinates in world space (for clustering optimization)
+        /// âœ… SLEEVE CORNERS: Pre-calculated 4 corner coordinates in world space (for clustering optimization)
         /// Calculated once during individual sleeve placement, stored for reuse during clustering
         /// Corner order: 1=Bottom-left, 2=Bottom-right, 3=Top-left, 4=Top-right (in local space, then rotated to world)
         /// </summary>
@@ -267,7 +267,7 @@ namespace JSE_Parameter_Service.Models
         public double? SleeveCorner4Z { get; set; }
         
         /// <summary>
-        /// ✅ MEP ORIENTATION VECTOR: MEP element orientation direction (from GetMepElementOrientation)
+        /// âœ… MEP ORIENTATION VECTOR: MEP element orientation direction (from GetMepElementOrientation)
         /// Used to calculate rotation angles and determine sleeve placement orientation
         /// For vertical elements on floors: BasisX/BasisY (horizontal cross-section orientation)
         /// For horizontal elements: Direction of the centerline
@@ -291,7 +291,7 @@ namespace JSE_Parameter_Service.Models
         }
         
         /// <summary>
-        /// ✅ NEW: Detailed MEP element size information with insulation data
+        /// âœ… NEW: Detailed MEP element size information with insulation data
         /// </summary>
         public MepElementSize MepElementSizeData { get; set; } = new MepElementSize();
         
@@ -311,14 +311,14 @@ namespace JSE_Parameter_Service.Models
         
         /// <summary>
         /// Whether this clash zone has been resolved (individual sleeve placed)
-        /// ✅ FLAG PERSISTENCE: Stored in both Global XML and Filter XML so refresh + placement share a single view of flag state
+        /// âœ… FLAG PERSISTENCE: Stored in both Global XML and Filter XML so refresh + placement share a single view of flag state
         /// (Global XML remains the source of truth; Filter XML copy assists diagnostics and legacy tools.)
         /// </summary>
         public bool IsResolvedFlag { get; set; } = false;
         
         /// <summary>
         /// Whether this clash zone has been resolved by cluster sleeve
-        /// ✅ FLAG PERSISTENCE: Stored in both Global XML and Filter XML for transparency; Global XML is still authoritative.
+        /// âœ… FLAG PERSISTENCE: Stored in both Global XML and Filter XML for transparency; Global XML is still authoritative.
         /// </summary>
         public bool IsClusterResolvedFlag { get; set; } = false;
 
@@ -329,7 +329,7 @@ namespace JSE_Parameter_Service.Models
         public bool IsCombinedResolved { get; set; } = false;
         
         /// <summary>
-        /// ✅ DUCT-DAMPER COMBO FLAG: Indicates this duct is near a damper and should be skipped
+        /// âœ… DUCT-DAMPER COMBO FLAG: Indicates this duct is near a damper and should be skipped
         /// Set to true when duct-damper combo is detected, prevents re-checking on subsequent refreshes
         /// </summary>
         public bool HasDamperNearby { get; set; } = false;
@@ -346,10 +346,10 @@ namespace JSE_Parameter_Service.Models
         /// false = loaded from previous XML (old clash)
         /// Used for debugging filtering effectiveness
         /// </summary>
-        public bool IsCurrentClashFlag { get; set; } = false; // ✅ CRITICAL FIX: Default to false for XML-loaded clashes
+        public bool IsCurrentClashFlag { get; set; } = false; // âœ… CRITICAL FIX: Default to false for XML-loaded clashes
         
         /// <summary>
-        /// ✅ SESSION FLAG: Indicates this zone is ready for placement in current session
+        /// âœ… SESSION FLAG: Indicates this zone is ready for placement in current session
         /// Set to true during refresh for zones that match current filter criteria
         /// Set to false after successful placement or when zone should be skipped
         /// REPLACES timestamp-based filtering - more reliable for session tracking
@@ -366,7 +366,7 @@ namespace JSE_Parameter_Service.Models
         /// </summary>
         public bool ReadyForPlacementFlag { get; set; } = false;
         
-        // ✅ BACKWARD COMPATIBILITY: Alias properties for legacy code that uses names without 'Flag' suffix
+        // âœ… BACKWARD COMPATIBILITY: Alias properties for legacy code that uses names without 'Flag' suffix
         [XmlIgnore]
         public bool IsResolved
         {
@@ -422,13 +422,13 @@ namespace JSE_Parameter_Service.Models
         public int ClusterSleeveInstanceId { get; set; } = -1;
 
         /// <summary>
-        /// ✅ STORAGE: Original SleeveInstanceId stored BEFORE cluster placement sets it to -1
+        /// âœ… STORAGE: Original SleeveInstanceId stored BEFORE cluster placement sets it to -1
         /// This allows cleanup to find individual sleeves even after they're marked as cluster-resolved
         /// </summary>
         public int AfterClusterSleevePlacedSleeveInstanceId { get; set; } = -1;
 
         /// <summary>
-        /// ✅ NEW: Cluster sleeve bounding box coordinates (for XML-serializable cleanup detection)
+        /// âœ… NEW: Cluster sleeve bounding box coordinates (for XML-serializable cleanup detection)
         /// These are saved after placing cluster sleeves to enable cheap cleanup of individual sleeves within clusters
         /// </summary>
         public double ClusterSleeveBoundingBoxMinX { get; set; } = 0.0;
@@ -439,7 +439,7 @@ namespace JSE_Parameter_Service.Models
         public double ClusterSleeveBoundingBoxMaxZ { get; set; } = 0.0;
 
         /// <summary>
-        /// ✅ NEW: Combined Cluster Tracking (Phase 1 addition)
+        /// âœ… NEW: Combined Cluster Tracking (Phase 1 addition)
         /// Instance ID of combined cluster sleeve this zone belongs to.
         /// -1 if not part of combined cluster, 0 if cluster itself exists but not combined yet.
         /// </summary>
@@ -532,7 +532,7 @@ namespace JSE_Parameter_Service.Models
         /// </summary>
         public double SleeveDiameter { get; set; } = 0.0;
         
-        // ✅ FIX 3: Backing fields for sleeve placement point (24 bytes total, not 48)
+        // âœ… FIX 3: Backing fields for sleeve placement point (24 bytes total, not 48)
         private double _sleevePlacementPointX = 0.0;
         private double _sleevePlacementPointY = 0.0;
         private double _sleevePlacementPointZ = 0.0;
@@ -540,7 +540,7 @@ namespace JSE_Parameter_Service.Models
         /// <summary>
         /// The actual placement point of the sleeve (in Revit internal units)
         /// Used for simple proximity calculation: check X diff and Y diff
-        /// ✅ FIX 3: Computed from backing fields to avoid duplicate storage (reduces memory by 24 bytes)
+        /// âœ… FIX 3: Computed from backing fields to avoid duplicate storage (reduces memory by 24 bytes)
         /// </summary>
         [XmlIgnore]
         public XYZ SleevePlacementPoint
@@ -548,7 +548,7 @@ namespace JSE_Parameter_Service.Models
             get => new XYZ(_sleevePlacementPointX, _sleevePlacementPointY, _sleevePlacementPointZ);
             set
             {
-                // ✅ FIX 3: Only update backing fields, don't store XYZ object
+                // âœ… FIX 3: Only update backing fields, don't store XYZ object
                 _sleevePlacementPointX = value?.X ?? 0.0;
                 _sleevePlacementPointY = value?.Y ?? 0.0;
                 _sleevePlacementPointZ = value?.Z ?? 0.0;
@@ -675,7 +675,7 @@ namespace JSE_Parameter_Service.Models
         public string StructuralElementGeometryHash { get; set; } = string.Empty;
         
         /// <summary>
-        /// ⚠️ CRITICAL PROPERTY - DO NOT REMOVE ⚠️
+        /// âš ï¸ CRITICAL PROPERTY - DO NOT REMOVE âš ï¸
         /// The category of the MEP element (e.g., "Ducts", "Pipes", "Cable Trays", "Duct Accessories")
         /// This is essential for category-specific processing and validation
         /// Each placement service validates this to ensure it only processes its own category
@@ -683,21 +683,21 @@ namespace JSE_Parameter_Service.Models
         public string MepElementCategory { get; set; } = string.Empty;
         
         /// <summary>
-        /// ✅ DAMPER TYPE/FAMILY: Pre-calculated MEP element type name (e.g., "MSD", "MSFD", "Standard")
+        /// âœ… DAMPER TYPE/FAMILY: Pre-calculated MEP element type name (e.g., "MSD", "MSFD", "Standard")
         /// Stored during refresh to avoid linked file access during placement
         /// Used by DamperPlacementStrategy for branching logic (Standard vs non-standard with Motorized)
         /// </summary>
         public string MepElementTypeName { get; set; } = string.Empty;
         
         /// <summary>
-        /// ✅ DAMPER TYPE/FAMILY: Pre-calculated MEP element family name (e.g., "Motorised Smoke Damper")
+        /// âœ… DAMPER TYPE/FAMILY: Pre-calculated MEP element family name (e.g., "Motorised Smoke Damper")
         /// Stored during refresh to avoid linked file access during placement
         /// Used by DamperPlacementStrategy to check for "Motorized/Motorised" in family name
         /// </summary>
         public string MepElementFamilyName { get; set; } = string.Empty;
         
         /// <summary>
-        /// ⚠️ CRITICAL PROPERTY - DO NOT REMOVE ⚠️
+        /// âš ï¸ CRITICAL PROPERTY - DO NOT REMOVE âš ï¸
         /// The shape of the duct (e.g., "Round", "Rectangular") - extracted from duct family name
         /// Only applicable for Ducts category
         /// Determines which sleeve family to use (DuctOpeningOnWall vs DuctOpeningOnWallround)
@@ -705,33 +705,33 @@ namespace JSE_Parameter_Service.Models
         public string DuctShape { get; set; } = string.Empty;
         
         /// <summary>
-        /// ⚠️ CRITICAL PROPERTY - DO NOT REMOVE ⚠️
+        /// âš ï¸ CRITICAL PROPERTY - DO NOT REMOVE âš ï¸
         /// The insulation type of the MEP element (e.g., "Normal", "Insulated")
         /// Used to determine which clearance value to apply (normal vs insulated)
         /// </summary>
         public string InsulationType { get; set; } = "Normal";
         
         /// <summary>
-        /// ✅ OOP METHOD: Whether this MEP element is insulated (detected via IInsulationDetector)
+        /// âœ… OOP METHOD: Whether this MEP element is insulated (detected via IInsulationDetector)
         /// Pre-calculated during refresh and saved to DB for clearance calculations during placement
         /// </summary>
         public bool IsInsulated { get; set; } = false;
         
         /// <summary>
-        /// ✅ OOP METHOD: Insulation thickness in Revit internal units (feet)
+        /// âœ… OOP METHOD: Insulation thickness in Revit internal units (feet)
         /// Pre-calculated during refresh and saved to DB if element is insulated
         /// Used by strategies to calculate appropriate clearance for insulated elements
         /// </summary>
         public double InsulationThickness { get; set; } = 0.0;
         
         /// <summary>
-        /// The formatted size of the MEP element (e.g., "600x300", "Ø200")
+        /// The formatted size of the MEP element (e.g., "600x300", "Ã˜200")
         /// Pre-calculated during refresh to avoid linked file access during placement
         /// </summary>
         public string MepElementFormattedSize { get; set; } = string.Empty;
         
         /// <summary>
-        /// ✅ SIZE PARAMETER VALUE: The exact text value from the "Size" parameter on the MEP element (e.g., "20 mmø", "200 mm dia symbol")
+        /// âœ… SIZE PARAMETER VALUE: The exact text value from the "Size" parameter on the MEP element (e.g., "20 mmÃ¸", "200 mm dia symbol")
         /// This is the raw parameter value as displayed in Revit schedules, stored as string for transfer to sleeve MEP_Size parameter
         /// Different from MepElementFormattedSize which may be calculated/derived
         /// Stored during refresh and saved in snapshot table JSON for parameter transfer
@@ -745,21 +745,21 @@ namespace JSE_Parameter_Service.Models
         public string MepElementSystemAbbreviation { get; set; } = string.Empty;
         
         /// <summary>
-        /// ✅ OOP METHOD: Connector side direction ("Left", "Right", "Top", "Bottom")
+        /// âœ… OOP METHOD: Connector side direction ("Left", "Right", "Top", "Bottom")
         /// Set when MEP connector is found and side is detected
         /// Used by strategy to determine which side gets MEP clearance (from UI settings)
         /// </summary>
         public string DamperConnectorSide { get; set; } = string.Empty;
         
         /// <summary>
-        /// ✅ OOP METHOD: Whether this damper has an MEP connector detected
+        /// âœ… OOP METHOD: Whether this damper has an MEP connector detected
         /// Set to true when connector is found (regardless of damper type)
         /// Strategy will use this flag along with DamperConnectorSide to determine clearance from UI settings
         /// </summary>
         public bool HasMepConnector { get; set; } = false;
         
         /// <summary>
-        /// ⚠️ DEPRECATED: Use HasMepConnector instead
+        /// âš ï¸ DEPRECATED: Use HasMepConnector instead
         /// Kept for backward compatibility during migration
         /// Set to true when connector is found and side is detected
         /// </summary>
@@ -767,7 +767,7 @@ namespace JSE_Parameter_Service.Models
         public bool IsMSFDDamper { get; set; } = false;
         
         /// <summary>
-        /// ✅ OOP METHOD: Whether this is a standard damper family (detected via IDamperTypeDetector)
+        /// âœ… OOP METHOD: Whether this is a standard damper family (detected via IDamperTypeDetector)
         /// Standard dampers use Other clearance (50mm) on all 4 sides
         /// Non-standard dampers (MSD, Motorized, MSFD, MD) use MEP + Other clearance based on connector side
         /// Strategy uses this to determine appropriate clearance logic from UI settings
@@ -817,7 +817,7 @@ namespace JSE_Parameter_Service.Models
         public string MepSystemName { get; set; }
 
         /// <summary>
-        /// ⚠️ CRITICAL PROPERTY - DO NOT REMOVE ⚠️
+        /// âš ï¸ CRITICAL PROPERTY - DO NOT REMOVE âš ï¸
         /// Pre-calculated wall direction vector for robust X-wall/Y-wall detection
         /// For walls: actual wall direction (not normal) - calculated during refresh
         /// For framing: framing direction vector
@@ -955,14 +955,14 @@ namespace JSE_Parameter_Service.Models
         public double MepElementHeight { get; set; }
         
         /// <summary>
-        /// ✅ PIPE OUTER DIAMETER: Pre-calculated pipe outer diameter (RBS_PIPE_OUTER_DIAMETER) in Revit internal units (feet)
+        /// âœ… PIPE OUTER DIAMETER: Pre-calculated pipe outer diameter (RBS_PIPE_OUTER_DIAMETER) in Revit internal units (feet)
         /// Stored during refresh for pipes to enable selection between nominal and outer diameter
         /// Used for sizing calculations - outer diameter is preferred for accurate sleeve sizing
         /// </summary>
         public double MepElementOuterDiameter { get; set; } = 0.0;
         
         /// <summary>
-        /// ✅ PIPE NOMINAL DIAMETER: Pre-calculated pipe nominal diameter (RBS_PIPE_DIAMETER_PARAM) in Revit internal units (feet)
+        /// âœ… PIPE NOMINAL DIAMETER: Pre-calculated pipe nominal diameter (RBS_PIPE_DIAMETER_PARAM) in Revit internal units (feet)
         /// Stored during refresh for pipes to enable selection between nominal and outer diameter
         /// Used as fallback or when user prefers nominal diameter for sizing
         /// </summary>
@@ -987,7 +987,7 @@ namespace JSE_Parameter_Service.Models
         public double MepElementRotationAngle { get; set; }
         
         /// <summary>
-        /// ✅ ROTATION MATRIX: Pre-calculated cos/sin for "dump once use many times" principle
+        /// âœ… ROTATION MATRIX: Pre-calculated cos/sin for "dump once use many times" principle
         /// Calculated once during placement, stored for reuse during clustering (avoids repeated Math.Cos/Sin calls)
         /// cos = Math.Cos(MepElementRotationAngle), sin = Math.Sin(MepElementRotationAngle)
         /// </summary>
@@ -1088,7 +1088,7 @@ namespace JSE_Parameter_Service.Models
         public bool IsEligibleByCurrentUi { get; set; } = true;
         
         /// <summary>
-        /// ✅ NEW: Set bounding box coordinates from a Revit BoundingBoxXYZ
+        /// âœ… NEW: Set bounding box coordinates from a Revit BoundingBoxXYZ
         /// This is called during sleeve placement to save bounding box for cheap clustering
         /// Coordinates are saved in world coordinates - clustering will use appropriate 2D projection
         /// </summary>
@@ -1096,7 +1096,7 @@ namespace JSE_Parameter_Service.Models
         {
             if (boundingBox != null)
             {
-                // ✅ CORRECT: Save world coordinates as-is - clustering will use appropriate 2D projection
+                // âœ… CORRECT: Save world coordinates as-is - clustering will use appropriate 2D projection
                 SleeveBoundingBoxMinX = boundingBox.Min.X;
                 SleeveBoundingBoxMinY = boundingBox.Min.Y;
                 SleeveBoundingBoxMinZ = boundingBox.Min.Z;
@@ -1107,15 +1107,15 @@ namespace JSE_Parameter_Service.Models
         }
         
         /// <summary>
-        /// ✅ MEMORY OPTIMIZATION: Clear all Revit API objects (XYZ, BoundingBoxXYZ) after coordinates are extracted
+        /// âœ… MEMORY OPTIMIZATION: Clear all Revit API objects (XYZ, BoundingBoxXYZ) after coordinates are extracted
         /// Call this after clash zone is created and all coordinates are saved to XML-serializable properties
         /// </summary>
         public void ClearRevitApiObjects()
         {
-            // ✅ CRITICAL FIX: Do NOT clear IntersectionPoint - it's a computed property that reads from backing fields
+            // âœ… CRITICAL FIX: Do NOT clear IntersectionPoint - it's a computed property that reads from backing fields
             // Clearing it would zero out _intersectionPointX/Y/Z, losing the intersection point data!
             // IntersectionPoint getter creates a NEW XYZ from backing fields, so there's no heavy object to clear
-            // ClashBoundingBox = null;  // ✅ PRESERVED: Keep bounding box for normalization fallback
+            // ClashBoundingBox = null;  // âœ… PRESERVED: Keep bounding box for normalization fallback
             SleevePlacementPoint = new XYZ(0,0,0);
             SleevePlacementPointActiveDocument = null;
             WallDirection = null;
@@ -1125,7 +1125,7 @@ namespace JSE_Parameter_Service.Models
         }
         
         /// <summary>
-        /// ✅ CORRECT: Calculate minimum distance between two rectangles and check if within tolerance
+        /// âœ… CORRECT: Calculate minimum distance between two rectangles and check if within tolerance
         /// Uses 2D coordinates based on host type and orientation
         /// </summary>
         public bool IsBoundingBoxOverlapping(ClashZone other, double toleranceDistance)
@@ -1134,12 +1134,12 @@ namespace JSE_Parameter_Service.Models
             
             double minDistance;
             
-            // ✅ DEBUG: Log orientation values
+            // âœ… DEBUG: Log orientation values
             DebugLogger.Info($"[DISTANCE-DEBUG] Rect1: Min=({SleeveBoundingBoxMinX:F3}, {SleeveBoundingBoxMinY:F3}), Max=({SleeveBoundingBoxMaxX:F3}, {SleeveBoundingBoxMaxY:F3})\n");
             DebugLogger.Info($"[DISTANCE-DEBUG] Rect2: Min=({other.SleeveBoundingBoxMinX:F3}, {other.SleeveBoundingBoxMinY:F3}), Max=({other.SleeveBoundingBoxMaxX:F3}, {other.SleeveBoundingBoxMaxY:F3})\n");
             DebugLogger.Info($"[DISTANCE-DEBUG] HostType={StructuralElementType}, Orientation={MepElementOrientationDirection}\n");
             
-            // ✅ CORRECT ALGORITHM: Calculate actual minimum distance between rectangles
+            // âœ… CORRECT ALGORITHM: Calculate actual minimum distance between rectangles
             if (StructuralElementType == "Floor")
             {
                 // Floor sleeves: Use X,Y distance only (ignore Z coordinate)
@@ -1149,7 +1149,7 @@ namespace JSE_Parameter_Service.Models
             }
             else if (StructuralElementType == "Wall" || StructuralElementType == "Structural Framing")
             {
-                // ✅ FIX: Use orientation from grouping logic instead of MepElementOrientationDirection
+                // âœ… FIX: Use orientation from grouping logic instead of MepElementOrientationDirection
                 // For walls, we know the orientation from the sleeve placement logic
                 if (MepElementOrientationDirection == "X" || MepElementOrientationDirection == null)
                 {
@@ -1280,7 +1280,7 @@ namespace JSE_Parameter_Service.Models
     }
     
     /// <summary>
-    /// ✅ TREE STRUCTURE: FileComboGroup for Filter XML (groups clash zones by file combo)
+    /// âœ… TREE STRUCTURE: FileComboGroup for Filter XML (groups clash zones by file combo)
     /// Similar to Global XML's FileComboGroup but contains full ClashZone objects instead of just entries
     /// </summary>
     public class FilterFileComboGroup
@@ -1298,7 +1298,7 @@ namespace JSE_Parameter_Service.Models
         
         /// <summary>
         /// Creates a normalized key for comparison (case-insensitive, removes path info)
-        /// ✅ FIX: Handles old format ": X : location Shared" pattern
+        /// âœ… FIX: Handles old format ": X : location Shared" pattern
         /// </summary>
         public string GetNormalizedKey()
         {
@@ -1307,7 +1307,7 @@ namespace JSE_Parameter_Service.Models
                 if (string.IsNullOrWhiteSpace(s)) return string.Empty;
                 var trimmed = s;
                 
-                // ✅ FIX: Remove old format ": X : location Shared" pattern (e.g., ": 12 : location Shared")
+                // âœ… FIX: Remove old format ": X : location Shared" pattern (e.g., ": 12 : location Shared")
                 // This handles legacy file combo names from Global XML
                 var locationMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @":\s*\d+\s*:\s*location\s+Shared", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 if (locationMatch.Success)
@@ -1329,7 +1329,7 @@ namespace JSE_Parameter_Service.Models
     }
     
     /// <summary>
-    /// ✅ TREE STRUCTURE: FilterGroup for Filter XML (groups file combos by filter)
+    /// âœ… TREE STRUCTURE: FilterGroup for Filter XML (groups file combos by filter)
     /// Similar to Global XML's FilterGroup but contains full ClashZone objects instead of just entries
     /// </summary>
     public class FilterGroupForStorage
@@ -1345,13 +1345,13 @@ namespace JSE_Parameter_Service.Models
 
     /// <summary>
     /// Container for storing clash zones in a profile
-    /// ✅ TREE STRUCTURE: Same hierarchical structure as Global XML - Filter → FileCombo → ClashZones
+    /// âœ… TREE STRUCTURE: Same hierarchical structure as Global XML - Filter â†’ FileCombo â†’ ClashZones
     /// </summary>
     [XmlRoot("ClashZoneStorage")]
     public class ClashZoneStorage
     {
         /// <summary>
-        /// ✅ TREE STRUCTURE: Hierarchical organization - Filter → FileCombo → ClashZones
+        /// âœ… TREE STRUCTURE: Hierarchical organization - Filter â†’ FileCombo â†’ ClashZones
         /// This is the PRIMARY structure for Filter XML (same as Global XML)
         /// </summary>
         [XmlArray("Filters")]
@@ -1359,7 +1359,7 @@ namespace JSE_Parameter_Service.Models
         public List<FilterGroupForStorage> Filters { get; set; } = new List<FilterGroupForStorage>();
         
         /// <summary>
-        /// ⚠️ DEPRECATED: Flat structure - kept for backward compatibility during migration
+        /// âš ï¸ DEPRECATED: Flat structure - kept for backward compatibility during migration
         /// Will be migrated to hierarchical structure (Filters) on first load
         /// </summary>
         [XmlArray("ClashZones")]
@@ -1526,3 +1526,4 @@ namespace JSE_Parameter_Service.Models
 
     }
 }
+

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace JSE_Parameter_Service.Models
@@ -21,7 +21,7 @@ namespace JSE_Parameter_Service.Models
         public int CombinedSleeveId { get; set; }
         
         /// <summary>
-        /// Revit element ID (ElementId.IntegerValue)
+        /// Revit element ID (ElementId.GetIdInt())
         /// </summary>
         public int CombinedInstanceId { get; set; }
         
@@ -213,3 +213,4 @@ namespace JSE_Parameter_Service.Models
         public List<SleeveConstituent> Constituents { get; set; } = new List<SleeveConstituent>();
     }
 }
+

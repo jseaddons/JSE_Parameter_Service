@@ -1,4 +1,4 @@
-using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Services;
 using System;
 using System.Collections.Generic;
@@ -9,17 +9,17 @@ namespace JSE_Parameter_Service.Services.Helpers
     public static class WallCenterlineHelper
     {
         /// <summary>
-        /// ✅ SIMPLE METHOD: Get wall centerline point using bounding box center (no ray tracing/projection).
+        /// âœ… SIMPLE METHOD: Get wall centerline point using bounding box center (no ray tracing/projection).
         /// Gets wall bounding box, calculates center point, and merges with intersection point based on orientation.
         /// This is more reliable than projection/ray tracing methods which can find wall face instead of centerline.
-        /// ✅ CRITICAL FIX: Transform bbox center to HOST coordinates for linked walls before merging.
+        /// âœ… CRITICAL FIX: Transform bbox center to HOST coordinates for linked walls before merging.
         /// </summary>
         public static XYZ GetWallCenterlinePointFromBbox(Wall wall, XYZ intersectionPoint, Document hostDocument = null)
         {
             if (OptimizationFlags.UseDiagnosticMode)
             {
                 DebugLogger.Log($"[CENTERLINE-DEBUG] ===== WALL CENTERLINE FROM BBOX (SIMPLE METHOD) =====");
-                DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.IntegerValue}");
+                DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.GetIdInt()}");
                 DebugLogger.Log($"[CENTERLINE-DEBUG] Input intersectionPoint: {intersectionPoint}");
             }
             
@@ -31,7 +31,7 @@ namespace JSE_Parameter_Service.Services.Helpers
             
             try
             {
-                // ✅ STEP 1: Get wall bounding box (in LOCAL coordinate space for linked walls)
+                // âœ… STEP 1: Get wall bounding box (in LOCAL coordinate space for linked walls)
                 BoundingBoxXYZ wallBbox = wall.get_BoundingBox(null);
                 if (wallBbox == null)
                 {
@@ -39,14 +39,14 @@ namespace JSE_Parameter_Service.Services.Helpers
                     return intersectionPoint;
                 }
                 
-                // ✅ STEP 2: Calculate wall bounding box center (this is the wall centerline in LOCAL coords)
+                // âœ… STEP 2: Calculate wall bounding box center (this is the wall centerline in LOCAL coords)
                 XYZ wallBboxCenterLocal = new XYZ(
                     (wallBbox.Min.X + wallBbox.Max.X) / 2.0,
                     (wallBbox.Min.Y + wallBbox.Max.Y) / 2.0,
                     (wallBbox.Min.Z + wallBbox.Max.Z) / 2.0
                 );
                 
-                // ✅ CRITICAL FIX: Transform bbox center to HOST coordinates for linked walls
+                // âœ… CRITICAL FIX: Transform bbox center to HOST coordinates for linked walls
                 XYZ wallBboxCenter = wallBboxCenterLocal;
                 Transform linkTransform = null;
                 Document wallDoc = wall.Document;
@@ -85,7 +85,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     DebugLogger.Log($"[CENTERLINE-DEBUG] Wall bbox center (host coords): ({wallBboxCenter.X:F6}ft, {wallBboxCenter.Y:F6}ft, {wallBboxCenter.Z:F6}ft)");
                 }
                 
-                // ✅ STEP 3: Get wall direction to determine orientation
+                // âœ… STEP 3: Get wall direction to determine orientation
                 var locationCurve = wall.Location as LocationCurve;
                 if (locationCurve == null || locationCurve.Curve == null)
                 {
@@ -106,19 +106,19 @@ namespace JSE_Parameter_Service.Services.Helpers
                     wallDirection = (end - start).Normalize();
                 }
                 
-                // ✅ Transform wall direction to host coordinates if linked
+                // âœ… Transform wall direction to host coordinates if linked
                 if (linkTransform != null && !linkTransform.IsIdentity)
                 {
                     wallDirection = linkTransform.OfVector(wallDirection).Normalize();
                 }
                 
-                // ✅ STEP 4: Determine if wall is X-wall or Y-wall (in HOST coordinate system)
+                // âœ… STEP 4: Determine if wall is X-wall or Y-wall (in HOST coordinate system)
                 double absX = Math.Abs(wallDirection.X);
                 double absY = Math.Abs(wallDirection.Y);
                 bool isXWall = absX > absY;
                 bool isYWall = absY > absX;
                 
-                // ✅ STEP 5: Merge coordinates based on wall orientation
+                // âœ… STEP 5: Merge coordinates based on wall orientation
                 // NOW both wallBboxCenter and intersectionPoint are in HOST coordinates!
                 XYZ centerlinePoint;
                 if (isXWall)
@@ -156,11 +156,11 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
         
         // Returns the centerline point of the wall at a given intersection point, using robust exterior normal
-        // ✅ CRITICAL FIX: Handles walls from linked documents by transforming wall normal to host coordinate system
+        // âœ… CRITICAL FIX: Handles walls from linked documents by transforming wall normal to host coordinate system
         public static XYZ GetWallCenterlinePoint(Wall wall, XYZ intersectionPoint, Document hostDocument = null)
         {
             DebugLogger.Log($"[CENTERLINE-DEBUG] ===== WALL CENTERLINE CALCULATION =====");
-            DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.IntegerValue}");
+            DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.GetIdInt()}");
             DebugLogger.Log($"[CENTERLINE-DEBUG] Input intersectionPoint: {intersectionPoint}");
             DebugLogger.Log($"[CENTERLINE-DEBUG] Wall orientation: {wall?.Orientation}");
             
@@ -171,11 +171,11 @@ namespace JSE_Parameter_Service.Services.Helpers
             }
             try
             {
-                // ✅ CRITICAL FIX: Get wall normal and transform it if wall is from linked document
+                // âœ… CRITICAL FIX: Get wall normal and transform it if wall is from linked document
                 // The intersection point is in host document coordinates, so wall normal must be in host coordinates too
                 XYZ wallNormal = wall.Orientation.Normalize();
                 
-                // ✅ LINKED DOCUMENT FIX: If wall is from linked document, transform normal to host coordinate system
+                // âœ… LINKED DOCUMENT FIX: If wall is from linked document, transform normal to host coordinate system
                 Document wallDoc = wall.Document;
                 Transform linkTransform = null;
                 
@@ -212,7 +212,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 double halfWidth = wallWidth / 2.0;
                 DebugLogger.Log($"[CENTERLINE-DEBUG] Wall width: {UnitUtils.ConvertFromInternalUnits(wallWidth, UnitTypeId.Millimeters):F1}mm, halfWidth: {UnitUtils.ConvertFromInternalUnits(halfWidth, UnitTypeId.Millimeters):F1}mm");
                 
-                // ✅ CRITICAL FIX: Project intersection point onto wall centerline
+                // âœ… CRITICAL FIX: Project intersection point onto wall centerline
                 // Method: Project intersection point onto wall curve, then move to centerline
                 // This works for both active and linked document walls
                 
@@ -223,7 +223,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     {
                         var curve = locationCurve.Curve;
                         
-                        // ✅ STEP 1: Transform intersection point to Local Space if needed
+                        // âœ… STEP 1: Transform intersection point to Local Space if needed
                         XYZ localIntersectionPoint = intersectionPoint;
                         if (linkTransform != null && !linkTransform.IsIdentity)
                         {
@@ -232,24 +232,24 @@ namespace JSE_Parameter_Service.Services.Helpers
                             DebugLogger.Log($"[CENTERLINE-DEBUG] Transformed Intersection to Local Space: {localIntersectionPoint}");
                         }
                         
-                        // ✅ STEP 2: Project LOCAL intersection point onto wall curve
+                        // âœ… STEP 2: Project LOCAL intersection point onto wall curve
                         // This gives us a point on the wall centerline in Local Space
                         double curveParam = curve.Project(localIntersectionPoint).Parameter;
                         XYZ pointOnCurve = curve.Evaluate(curveParam, true);
                         
-                        // ✅ LINKED DOCUMENT FIX: Transform point on curve to host coordinates if needed
+                        // âœ… LINKED DOCUMENT FIX: Transform point on curve to host coordinates if needed
                         if (linkTransform != null && !linkTransform.IsIdentity)
                         {
                             pointOnCurve = linkTransform.OfPoint(pointOnCurve);
                             DebugLogger.Log($"[CENTERLINE-DEBUG] Transformed point on wall curve: {pointOnCurve}");
                         }
                         
-                        // ✅ CRITICAL FIX: pointOnCurve is already on the wall centerline (LocationCurve IS the centerline)
+                        // âœ… CRITICAL FIX: pointOnCurve is already on the wall centerline (LocationCurve IS the centerline)
                         // For dampers, we need to merge coordinates: keep X/Z from intersection point, use Y from centerline (for X-walls)
                         // or keep Y/Z from intersection point, use X from centerline (for Y-walls)
                         // This ensures the centerline point is at the correct position along the wall length
                         
-                        // ✅ STEP 2: Use pointOnCurve directly since it's already on the wall centerline (LocationCurve)
+                        // âœ… STEP 2: Use pointOnCurve directly since it's already on the wall centerline (LocationCurve)
                         // However, we need to preserve the intersection point's position along the wall length
                         // The projection onto the curve gives us the correct perpendicular coordinate (Y for X-walls, X for Y-walls)
                         // but we need to keep the intersection point's coordinate along the wall length
@@ -294,7 +294,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                             DebugLogger.Log($"[CENTERLINE-DEBUG] Unknown wall orientation: Using pointOnCurve directly");
                         }
                         
-                        // ✅ DIAGNOSTIC: Log the calculation
+                        // âœ… DIAGNOSTIC: Log the calculation
                         XYZ offset = centerlinePoint - intersectionPoint;
                         double offsetDistance = offset.GetLength();
                         DebugLogger.Log($"[CENTERLINE-DEBUG] Point on wall curve (centerline): {pointOnCurve}");
@@ -310,7 +310,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     DebugLogger.Log($"[CENTERLINE-DEBUG] Error projecting onto wall curve: {ex.Message}");
                 }
                 
-                // ✅ FALLBACK: If we can't get centerline point, use half-width method (original approach)
+                // âœ… FALLBACK: If we can't get centerline point, use half-width method (original approach)
                 // This assumes intersection point is on one face and we move inward by half width
                 DebugLogger.Log($"[CENTERLINE-DEBUG] Using fallback method: moving by half width");
                 XYZ fallbackCenterlinePoint = intersectionPoint + wallNormal * (-halfWidth);
@@ -336,12 +336,12 @@ namespace JSE_Parameter_Service.Services.Helpers
         /// Returns the centerline point of a structural framing element at a given intersection point
         /// Follows the same logic pattern as GetWallCenterlinePoint but adapted for structural framing
         /// Only processes structural framing elements, following StructuralSleevePlacementCommand pattern
-        /// ✅ CRITICAL FIX: Handles framing from linked documents by transforming framing normal to host coordinate system
+        /// âœ… CRITICAL FIX: Handles framing from linked documents by transforming framing normal to host coordinate system
         /// </summary>
         public static XYZ GetStructuralFramingCenterlinePoint(Element structuralFraming, XYZ intersectionPoint, Document hostDocument = null)
         {
             DebugLogger.Log($"[CENTERLINE-DEBUG] ===== STRUCTURAL FRAMING CENTERLINE CALCULATION =====");
-            DebugLogger.Log($"[CENTERLINE-DEBUG] Structural Framing ID: {structuralFraming?.Id?.IntegerValue}");
+            DebugLogger.Log($"[CENTERLINE-DEBUG] Structural Framing ID: {structuralFraming?.Id?.GetIdInt()}");
             DebugLogger.Log($"[CENTERLINE-DEBUG] Input intersectionPoint: {intersectionPoint}");
             
             if (structuralFraming == null)
@@ -351,7 +351,7 @@ namespace JSE_Parameter_Service.Services.Helpers
             }
             
             // Check if this is a structural framing element
-            if (structuralFraming.Category.Id.IntegerValue != (int)BuiltInCategory.OST_StructuralFraming)
+            if (structuralFraming.Category.Id.GetIdInt() != (int)BuiltInCategory.OST_StructuralFraming)
             {
                 DebugLogger.Log($"[CENTERLINE-DEBUG] Element is not structural framing (Category: {structuralFraming.Category.Name}), returning input point");
                 return intersectionPoint;
@@ -367,19 +367,19 @@ namespace JSE_Parameter_Service.Services.Helpers
                 // StructuralType enum: NonStructural=0, Beam=1, Brace=2, Column=3, Footing=4, UnknownFraming=5
                 if (structuralType == Autodesk.Revit.DB.Structure.StructuralType.NonStructural)
                 {
-                    DebugLogger.Log($"[CENTERLINE-DEBUG] Framing {structuralFraming.Id.IntegerValue} is not structural (StructuralType={structuralType}), returning input point");
+                    DebugLogger.Log($"[CENTERLINE-DEBUG] Framing {structuralFraming.Id.GetIdInt()} is not structural (StructuralType={structuralType}), returning input point");
                     return intersectionPoint;
                 }
-                DebugLogger.Log($"[CENTERLINE-DEBUG] Framing {structuralFraming.Id.IntegerValue} is structural (StructuralType={structuralType}), proceeding with centerline calculation");
+                DebugLogger.Log($"[CENTERLINE-DEBUG] Framing {structuralFraming.Id.GetIdInt()} is structural (StructuralType={structuralType}), proceeding with centerline calculation");
             }
             
             try
             {
-                // ✅ CRITICAL FIX: Get framing normal and transform it if framing is from linked document
+                // âœ… CRITICAL FIX: Get framing normal and transform it if framing is from linked document
                 // The intersection point is in host document coordinates, so framing normal must be in host coordinates too
                 XYZ framingNormal = GetStructuralFramingNormal(structuralFraming);
                 
-                // ✅ LINKED DOCUMENT FIX: If framing is from linked document, transform normal to host coordinate system
+                // âœ… LINKED DOCUMENT FIX: If framing is from linked document, transform normal to host coordinate system
                 Document framingDoc = structuralFraming.Document;
                 Transform linkTransform = null;
                 
@@ -445,7 +445,7 @@ namespace JSE_Parameter_Service.Services.Helpers
         public static XYZ GetFloorCenterlinePoint(Element floor, XYZ intersectionPoint)
         {
             DebugLogger.Log($"[CENTERLINE-DEBUG] ===== FLOOR CENTERLINE CALCULATION =====");
-            DebugLogger.Log($"[CENTERLINE-DEBUG] Floor ID: {floor?.Id?.IntegerValue}");
+            DebugLogger.Log($"[CENTERLINE-DEBUG] Floor ID: {floor?.Id?.GetIdInt()}");
             DebugLogger.Log($"[CENTERLINE-DEBUG] Input intersectionPoint: {intersectionPoint}");
             
             if (floor == null)
@@ -455,7 +455,7 @@ namespace JSE_Parameter_Service.Services.Helpers
             }
             
             // Check if this is a floor element
-            if (floor.Category.Id.IntegerValue != (int)BuiltInCategory.OST_Floors)
+            if (floor.Category.Id.GetIdInt() != (int)BuiltInCategory.OST_Floors)
             {
                 DebugLogger.Log($"[CENTERLINE-DEBUG] Element is not a floor (Category: {floor.Category.Name}), returning input point");
                 return intersectionPoint;
@@ -472,14 +472,14 @@ namespace JSE_Parameter_Service.Services.Helpers
                     bool isStructural = structuralUsageParam.AsInteger() == 1;
                     if (!isStructural)
                     {
-                        DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.IntegerValue} is not structural (isStructural={isStructural}), returning input point");
+                        DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.GetIdInt()} is not structural (isStructural={isStructural}), returning input point");
                         return intersectionPoint;
                     }
-                    DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.IntegerValue} is structural (isStructural={isStructural}), proceeding with centerline calculation");
+                    DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.GetIdInt()} is structural (isStructural={isStructural}), proceeding with centerline calculation");
                 }
                 else
                 {
-                DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.IntegerValue} has no structural usage parameter, proceeding with centerline calculation");
+                DebugLogger.Log($"[CENTERLINE-DEBUG] Floor {floor.Id.GetIdInt()} has no structural usage parameter, proceeding with centerline calculation");
                 }
             }
             
@@ -546,7 +546,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 }
                 
                 // If no parameters found, throw error as per StructuralSleevePlacementCommand pattern
-                throw new InvalidOperationException($"Cannot determine structural framing depth: 'b' or 'Width' parameter not set for element ID {structuralFraming.Id.IntegerValue}");
+                throw new InvalidOperationException($"Cannot determine structural framing depth: 'b' or 'Width' parameter not set for element ID {structuralFraming.Id.GetIdInt()}");
             }
             catch (System.Exception ex)
             {
@@ -646,14 +646,14 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
         
         /// <summary>
-        /// ✅ LEGACY RAY-TRACE METHOD: Get wall centerline point by finding 2 wall faces and calculating midpoint.
+        /// âœ… LEGACY RAY-TRACE METHOD: Get wall centerline point by finding 2 wall faces and calculating midpoint.
         /// This is the "half in and half out" method for ducts, pipes, and cable trays.
         /// Uses ReferenceIntersector to find wall faces in both directions, then calculates midpoint.
         /// </summary>
         public static XYZ GetWallCenterlinePointFromRayTrace(Wall wall, XYZ intersectionPoint, Document hostDocument = null)
         {
             DebugLogger.Log($"[CENTERLINE-DEBUG] ===== WALL CENTERLINE FROM RAY-TRACE (LEGACY METHOD) =====");
-            DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.IntegerValue}");
+            DebugLogger.Log($"[CENTERLINE-DEBUG] Wall ID: {wall?.Id?.GetIdInt()}");
             DebugLogger.Log($"[CENTERLINE-DEBUG] Input intersectionPoint: {intersectionPoint}");
             
             if (wall == null || hostDocument == null)
@@ -664,10 +664,10 @@ namespace JSE_Parameter_Service.Services.Helpers
             
             try
             {
-                // ✅ STEP 1: Get wall normal to determine ray direction
+                // âœ… STEP 1: Get wall normal to determine ray direction
                 XYZ wallNormal = wall.Orientation.Normalize();
                 
-                // ✅ LINKED DOCUMENT FIX: Transform normal if wall is from linked document
+                // âœ… LINKED DOCUMENT FIX: Transform normal if wall is from linked document
                 Document wallDoc = wall.Document;
                 Transform linkTransform = null;
                 
@@ -690,7 +690,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     }
                 }
                 
-                // ✅ STEP 2: Create ReferenceIntersector to find wall faces
+                // âœ… STEP 2: Create ReferenceIntersector to find wall faces
                 var view3D = new FilteredElementCollector(hostDocument)
                     .OfClass(typeof(View3D))
                     .Cast<View3D>()
@@ -708,12 +708,12 @@ namespace JSE_Parameter_Service.Services.Helpers
                     view3D);
                 refIntersector.FindReferencesInRevitLinks = true;
                 
-                // ✅ STEP 3: Cast rays in both directions to find wall faces
+                // âœ… STEP 3: Cast rays in both directions to find wall faces
                 var rayDir = wallNormal;
                 var hitsFwd = refIntersector.Find(intersectionPoint, rayDir)?.Where(h => h != null).OrderBy(h => h.Proximity).Take(2).ToList();
                 var hitsBack = refIntersector.Find(intersectionPoint, rayDir.Negate())?.Where(h => h != null).OrderBy(h => h.Proximity).Take(2).ToList();
                 
-                // ✅ STEP 4: Find the two closest wall faces (one in each direction)
+                // âœ… STEP 4: Find the two closest wall faces (one in each direction)
                 ReferenceWithContext? face1 = null;
                 ReferenceWithContext? face2 = null;
                 
@@ -745,7 +745,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     }
                 }
                 
-                // ✅ STEP 5: Calculate midpoint between the two faces (half in and half out)
+                // âœ… STEP 5: Calculate midpoint between the two faces (half in and half out)
                 if (face1 != null && face2 != null)
                 {
                     var point1 = intersectionPoint + rayDir * face1.Proximity;
@@ -757,7 +757,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                     DebugLogger.Log($"[CENTERLINE-DEBUG] Midpoint (centerline)=({midpoint.X:F6}ft, {midpoint.Y:F6}ft, {midpoint.Z:F6}ft)");
                     DebugLogger.Log($"[CENTERLINE-DEBUG] ===== END WALL CENTERLINE FROM RAY-TRACE =====");
                     
-                    // ✅ CRITICAL REFINEMENT: Ensure strictly only the wall-depth coordinate changes
+                    // âœ… CRITICAL REFINEMENT: Ensure strictly only the wall-depth coordinate changes
                     // The sleeve must stay perfectly aligned with the duct intersection point (Length & Height axes)
                     // We only want to adjust the position 'in/out' of the wall (Depth axis)
                     
@@ -818,11 +818,11 @@ namespace JSE_Parameter_Service.Services.Helpers
             }
             
             // Determine element type and apply appropriate centerline calculation
-            if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_Walls)
+            if (element.Category.Id.GetIdInt() == (int)BuiltInCategory.OST_Walls)
             {
                 if (element is Wall wall)
                 {
-                    // ✅ STANCE UNIFICATION: Use GetWallCenterlinePoint (LocationCurve Projection)
+                    // âœ… STANCE UNIFICATION: Use GetWallCenterlinePoint (LocationCurve Projection)
                     // This is consistent with DamperPlacementPointService and Doc Section 6.0.1.1.
                     // It is faster than Ray-Trace and more accurate than BBox in R2024.
                     return GetWallCenterlinePoint(wall, intersectionPoint, hostDocument);
@@ -830,12 +830,12 @@ namespace JSE_Parameter_Service.Services.Helpers
                 else
                     return intersectionPoint;
             }
-            else if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_StructuralFraming)
+            else if (element.Category.Id.GetIdInt() == (int)BuiltInCategory.OST_StructuralFraming)
             {
-                // ✅ CRITICAL FIX: Pass host document so helper can find transform for linked document framing
+                // âœ… CRITICAL FIX: Pass host document so helper can find transform for linked document framing
                 return GetStructuralFramingCenterlinePoint(element, intersectionPoint, hostDocument);
             }
-            else if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_Floors)
+            else if (element.Category.Id.GetIdInt() == (int)BuiltInCategory.OST_Floors)
             {
                 return GetFloorCenterlinePoint(element, intersectionPoint);
             }
@@ -875,3 +875,4 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
     }
 }
+

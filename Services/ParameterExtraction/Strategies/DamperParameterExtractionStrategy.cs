@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -57,7 +57,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
             if (category == null) return false;
 
             // Check for Duct Accessories category (contains dampers)
-            return category.Id.IntegerValue == (int)BuiltInCategory.OST_DuctAccessory;
+            return category.Id.GetIdInt() == (int)BuiltInCategory.OST_DuctAccessory;
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
                     StorageType.Double => param.AsDouble(),
                     StorageType.Integer => param.AsInteger(),
                     StorageType.String => param.AsString(),
-                    StorageType.ElementId => param.AsElementId()?.IntegerValue,
+                    StorageType.ElementId => param.AsElementId()?.GetIdInt(),
                     _ => null
                 };
 
@@ -297,3 +297,4 @@ namespace JSE_Parameter_Service.Services.ParameterExtraction.Strategies
         #endregion
     }
 }
+

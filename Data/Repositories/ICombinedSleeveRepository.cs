@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using JSE_Parameter_Service.Models;
 
 namespace JSE_Parameter_Service.Data.Repositories
@@ -48,7 +48,7 @@ namespace JSE_Parameter_Service.Data.Repositories
         /// <summary>
         /// Retrieves a combined sleeve by its Revit instance ID.
         /// </summary>
-        /// <param name="instanceId">Revit ElementId.IntegerValue</param>
+        /// <param name="instanceId">Revit ElementId.GetIdInt()</param>
         /// <returns>Combined sleeve data, or null if not found</returns>
         CombinedSleeve GetCombinedSleeveByInstanceId(int instanceId);
         
@@ -124,3 +124,4 @@ namespace JSE_Parameter_Service.Data.Repositories
         void MarkConstituentsAsResolved(List<SleeveConstituent> constituents, int combinedInstanceId);
     }
 }
+

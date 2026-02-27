@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -63,7 +63,7 @@ namespace JSE_Parameter_Service.Services
             try
             {
                 using var context = new SleeveDbContext(doc);
-                // ✅ CRITICAL FIX: Initialize cache with LIVE context
+                // âœ… CRITICAL FIX: Initialize cache with LIVE context
                 _cache.Initialize(doc, context);
 
                 var markRepo = new MarkDataRepository(context);
@@ -117,15 +117,35 @@ namespace JSE_Parameter_Service.Services
                     }
                 }
 
-                foreach (var update in updates)
+                // Definition caching: resolve "MEP Mark" / "Mark" once, use get_Parameter(Definition) in loop
+                if (OptimizationFlags.UseDefinitionCachingForBatchWrites && updates.Count > 0)
                 {
-                    try
+                    var firstEl = doc.GetElement(updates[0].ElementId);
+                    var (mepMarkDef, markDef) = CacheMarkDefinitions(firstEl);
+
+                    foreach (var update in updates)
                     {
-                        var el = doc.GetElement(update.ElementId);
-                        var p = el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark");
-                        if (p != null && !p.IsReadOnly) { p.Set(update.Value); processedCount++; }
+                        try
+                        {
+                            var el = doc.GetElement(update.ElementId);
+                            var p = GetMarkParameter(el, mepMarkDef, markDef);
+                            if (p != null && !p.IsReadOnly) { p.Set(update.Value); processedCount++; }
+                        }
+                        catch { errorCount++; }
                     }
-                    catch { errorCount++; }
+                }
+                else
+                {
+                    foreach (var update in updates)
+                    {
+                        try
+                        {
+                            var el = doc.GetElement(update.ElementId);
+                            var p = el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark");
+                            if (p != null && !p.IsReadOnly) { p.Set(update.Value); processedCount++; }
+                        }
+                        catch { errorCount++; }
+                    }
                 }
             }
             catch (Exception ex)
@@ -142,7 +162,7 @@ namespace JSE_Parameter_Service.Services
             try
             {
                 using var context = new SleeveDbContext(doc);
-                // ✅ CRITICAL FIX: Initialize cache with the LIVE context for this scope
+                // âœ… CRITICAL FIX: Initialize cache with the LIVE context for this scope
                 // The constructor context was disposed, causing ObjectDisposedException
                 _cache.Initialize(doc, context);
 
@@ -168,6 +188,17 @@ namespace JSE_Parameter_Service.Services
                 int individualGroups = groupedZones.Count - clusterGroups;
                 RemarkDebugLogger.LogInfo($"[PREFIX-ONLY] Unique elements to update: {groupedZones.Count} ({clusterGroups} clusters/combined, {individualGroups} individuals)");
 
+                // Cache definitions for "MEP Mark" / "Mark" once for both read and write loops
+                Definition mepMarkDef = null, markDef = null;
+                bool useDefCache = OptimizationFlags.UseDefinitionCachingForBatchWrites && groupedZones.Count > 0;
+                if (useDefCache)
+                {
+                    var firstGroupId = groupedZones[0].Key;
+                    var firstEl = doc.GetElement(new ElementId(firstGroupId));
+                    if (firstEl != null)
+                        (mepMarkDef, markDef) = CacheMarkDefinitions(firstEl);
+                }
+
                 foreach (var group in groupedZones)
                 {
                     int targetId = group.Key;
@@ -177,24 +208,24 @@ namespace JSE_Parameter_Service.Services
                     var el = doc.GetElement(new ElementId(targetId));
                     if (el == null) continue;
 
-                    var p = el.LookupParameter("MEP Mark") ?? el.LookupParameter("Mark");
+                    Parameter p = useDefCache ? GetMarkParameter(el, mepMarkDef, markDef) : (el.LookupParameter("MEP Mark") ?? el.LookupParameter("Mark"));
                     string existingMark = p?.AsString() ?? "";
 
                     // Centralized Prefix Resolution (Advanced Fixes behind flag)
                     // Pass the list of zones in group so ResolvePrefix knows it's a cluster/combined context
                     string elementPrefix = ResolvePrefix(category, settings, primaryZone, zonesInGroup);
-                    
-                    // ✅ NUMBER PRESERVATION: Extract existing number (if any)
+
+                    // NUMBER PRESERVATION: Extract existing number (if any)
                     string existingNumber = ExtractExistingNumber(existingMark);
-                    
+
                     string targetMark = $"{projectPrefix}{elementPrefix}{existingNumber}";
 
-                    // ✅ SMART SKIP: Only skip if the mark is identical
+                    // SMART SKIP: Only skip if the mark is identical
                     if (string.Equals(targetMark, existingMark, StringComparison.Ordinal))
                     {
                         if (!remarkAll) continue;
                     }
-                    
+
                     RemarkDebugLogger.LogInfo($"[PREFIX-ONLY] ID {targetId}: Target '{targetMark}' (Existing: '{existingMark}')");
                     updates.Add((el.Id, targetMark));
                 }
@@ -205,7 +236,7 @@ namespace JSE_Parameter_Service.Services
                 NumberingDebugLogger.LogStep($"[DEBUG] Total updates to apply: {updates.Count}");
                 foreach (var up in updates.Take(50)) // Log first 50 to see enough examples
                 {
-                    NumberingDebugLogger.LogInfo($"[DEBUG] Update: ElementId={up.Id.IntegerValue}, Value='{up.Value}'");
+                    NumberingDebugLogger.LogInfo($"[DEBUG] Update: ElementId={up.Id.GetIdInt()}, Value='{up.Value}'");
                 }
 
                 NumberingDebugLogger.LogStep($"Applying {updates.Count} prefix updates to Revit...");
@@ -214,21 +245,21 @@ namespace JSE_Parameter_Service.Services
                     try
                     {
                         var el = doc.GetElement(update.Id);
-                        var p = el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark");
-                        if (p != null && !p.IsReadOnly) 
-                        { 
-                            p.Set(update.Value); 
-                            processedCount++; 
+                        Parameter p2 = useDefCache ? GetMarkParameter(el, mepMarkDef, markDef) : (el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark"));
+                        if (p2 != null && !p2.IsReadOnly)
+                        {
+                            p2.Set(update.Value);
+                            processedCount++;
                         }
                         else
                         {
-                            NumberingDebugLogger.LogStep($"FAILED to update element {update.Id.IntegerValue}: Parameter NULL or ReadOnly");
+                            NumberingDebugLogger.LogStep($"FAILED to update element {update.Id.GetIdInt()}: Parameter NULL or ReadOnly");
                         }
                     }
                     catch (Exception ex)
-                    { 
-                        RemarkDebugLogger.LogError($"Error updating element {update.Id.IntegerValue}", ex);
-                        errorCount++; 
+                    {
+                        RemarkDebugLogger.LogError($"Error updating element {update.Id.GetIdInt()}", ex);
+                        errorCount++;
                     }
                 }
                 RemarkDebugLogger.LogStep($"Finished applying prefixes. Processed: {processedCount}, Errors: {errorCount}");
@@ -258,23 +289,29 @@ namespace JSE_Parameter_Service.Services
 
                 if (allSleeves.Count == 0) return (0, 0);
 
+                // Cache definitions for "MEP Mark" / "Mark" once for read and write loops
+                Definition numMepMarkDef = null, numMarkDef = null;
+                bool useNumDefCache = OptimizationFlags.UseDefinitionCachingForBatchWrites && allSleeves.Count > 0;
+                if (useNumDefCache)
+                    (numMepMarkDef, numMarkDef) = CacheMarkDefinitions(allSleeves[0]);
+
                 var prefixGroups = new Dictionary<string, List<FamilyInstance>>();
                 foreach (var sleeve in allSleeves)
                 {
-                    var p = sleeve.LookupParameter("MEP Mark") ?? sleeve.LookupParameter("Mark");
+                    Parameter p = useNumDefCache ? GetMarkParameter(sleeve, numMepMarkDef, numMarkDef) : (sleeve.LookupParameter("MEP Mark") ?? sleeve.LookupParameter("Mark"));
                     string currentMark = p?.AsString() ?? "";
-                    if (string.IsNullOrWhiteSpace(currentMark)) 
+                    if (string.IsNullOrWhiteSpace(currentMark))
                     {
-                        NumberingDebugLogger.LogInfo($"[NUMBERING SKIPPED] Element {sleeve.Id.IntegerValue} has empty/null MEP Mark.");
+                        NumberingDebugLogger.LogInfo($"[NUMBERING SKIPPED] Element {sleeve.Id.GetIdInt()} has empty/null MEP Mark.");
                         continue;
                     }
 
                     string prefix = ExtractPrefix(currentMark);
-                    
+
                     if (allowedPrefixes != null && !allowedPrefixes.Any(ap => prefix.StartsWith(ap)))
                     {
-                        NumberingDebugLogger.LogInfo($"[NUMBERING SKIPPED] Element {sleeve.Id.IntegerValue} Prefix '{prefix}' NOT in allowed list: {string.Join(", ", allowedPrefixes)}");
-                        continue; 
+                        NumberingDebugLogger.LogInfo($"[NUMBERING SKIPPED] Element {sleeve.Id.GetIdInt()} Prefix '{prefix}' NOT in allowed list: {string.Join(", ", allowedPrefixes)}");
+                        continue;
                     }
 
                     if (!prefixGroups.ContainsKey(prefix)) prefixGroups[prefix] = new List<FamilyInstance>();
@@ -285,7 +322,7 @@ namespace JSE_Parameter_Service.Services
                 var markerRepo = new CategoryProcessingMarkerRepository(context);
                 var updates = new List<(ElementId Id, string Value)>();
 
-                // ✅ PER-VIEW SCOPING: Determine the scope for numbering memory
+                // âœ… PER-VIEW SCOPING: Determine the scope for numbering memory
                 string targetScope = ""; // Where we save progress (Active View)
                 string sourceScope = ""; // Where we read start number from (Selected View or Active View)
 
@@ -314,15 +351,18 @@ namespace JSE_Parameter_Service.Services
                     NumberingDebugLogger.LogInfo("[NUMBERING SCOPE] Using Global (Project-wide) memory.");
                 }
 
+                // Collect deferred DB marker updates (write AFTER Revit params, not during prefix loop)
+                var deferredMarkerUpdates = new List<(string targetKey, int lastNum, string sleeveIds)>();
+
                 foreach (var group in prefixGroups)
                 {
                     string prefix = group.Key;
-                    var items = group.Value.OrderBy(i => i.Id.IntegerValue).ToList();
-                    
-                    // ✅ SCOPED KEYS: Use source for reading, target for writing
+                    var items = group.Value.OrderBy(i => i.Id.GetIdInt()).ToList();
+
+                    // SCOPED KEYS: Use source for reading, target for writing
                     string sourceKey = string.IsNullOrEmpty(sourceScope) ? prefix : $"{prefix}|{sourceScope}";
                     string targetKey = string.IsNullOrEmpty(targetScope) ? prefix : $"{prefix}|{targetScope}";
-                    
+
                     int startNum = 1;
                     if (markPrefixes != null && markPrefixes.StartNumber > 0)
                     {
@@ -345,23 +385,30 @@ namespace JSE_Parameter_Service.Services
                         startNum++;
                     }
 
-                    // Update the database marker for the TARGET (Active Level)
-                    markerRepo.UpdateMarker(targetKey, startNum - 1, string.Join(",", items.Select(i => i.Id.IntegerValue)));
+                    // Defer DB marker write (collected, flushed after Revit writes)
+                    deferredMarkerUpdates.Add((targetKey, startNum - 1, string.Join(",", items.Select(i => i.Id.GetIdInt()))));
                 }
 
+                // PRIORITY: Revit parameter writes first (main thread work)
                 foreach (var up in updates)
                 {
-                    try 
-                    { 
+                    try
+                    {
                         var el = doc.GetElement(up.Id);
-                        var p = el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark");
+                        Parameter p = useNumDefCache ? GetMarkParameter(el, numMepMarkDef, numMarkDef) : (el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark"));
                         if (p != null && !p.IsReadOnly)
                         {
-                            p.Set(up.Value); 
-                            processedCount++; 
+                            p.Set(up.Value);
+                            processedCount++;
                         }
-                    } 
+                    }
                     catch { errorCount++; }
+                }
+
+                // DEFERRED: Flush marker updates to DB (after Revit writes complete)
+                foreach (var marker in deferredMarkerUpdates)
+                {
+                    markerRepo.UpdateMarker(marker.targetKey, marker.lastNum, marker.sleeveIds);
                 }
             }
             catch (Exception ex) { DebugLogger.Error($"[MarkParameterService] Batch numbering error: {ex.Message}"); }
@@ -377,6 +424,32 @@ namespace JSE_Parameter_Service.Services
         #endregion
 
         #region Helpers
+
+        /// <summary>
+        /// Resolves the "MEP Mark" or "Mark" parameter using cached Definition objects.
+        /// get_Parameter(Definition) is ~10x faster than LookupParameter(string).
+        /// Returns null if neither parameter exists on the element.
+        /// </summary>
+        private static Parameter GetMarkParameter(Element el, Definition mepMarkDef, Definition markDef)
+        {
+            if (el == null) return null;
+            Parameter p = null;
+            if (mepMarkDef != null) p = el.get_Parameter(mepMarkDef);
+            if (p == null && markDef != null) p = el.get_Parameter(markDef);
+            return p;
+        }
+
+        /// <summary>
+        /// Caches Definition objects for "MEP Mark" and "Mark" from a representative element.
+        /// Call once before a write loop, then use GetMarkParameter() in the loop.
+        /// </summary>
+        private static (Definition mepMarkDef, Definition markDef) CacheMarkDefinitions(Element representativeElement)
+        {
+            if (representativeElement == null) return (null, null);
+            var mepMark = representativeElement.LookupParameter("MEP Mark");
+            var mark = representativeElement.LookupParameter("Mark");
+            return (mepMark?.Definition, mark?.Definition);
+        }
 
         private string ExtractPrefix(string mark)
         {
@@ -422,11 +495,17 @@ namespace JSE_Parameter_Service.Services
                     .Where(fi => fi.Symbol.Family.Name.Contains("OpeningOnWall") || fi.Symbol.Family.Name.Contains("OpeningOnSlab"))
                     .ToList();
 
+                // Cache definitions for "MEP Mark" / "Mark" once
+                Definition resetMepMarkDef = null, resetMarkDef = null;
+                bool useResetDefCache = OptimizationFlags.UseDefinitionCachingForBatchWrites && sleeves.Count > 0;
+                if (useResetDefCache)
+                    (resetMepMarkDef, resetMarkDef) = CacheMarkDefinitions(sleeves[0]);
+
                 using var t = new Transaction(doc, "Reset Marks for Level");
                 t.Start();
                 foreach (var sleeve in sleeves)
                 {
-                    var p = sleeve.LookupParameter("MEP Mark") ?? sleeve.LookupParameter("Mark");
+                    Parameter p = useResetDefCache ? GetMarkParameter(sleeve, resetMepMarkDef, resetMarkDef) : (sleeve.LookupParameter("MEP Mark") ?? sleeve.LookupParameter("Mark"));
                     if (p != null && !p.IsReadOnly && !string.IsNullOrEmpty(p.AsString()))
                     {
                         p.Set("");
@@ -444,12 +523,22 @@ namespace JSE_Parameter_Service.Services
             int clearedCount = 0;
             try
             {
+                // Cache definitions for "MEP Mark" / "Mark" once
+                Definition selMepMarkDef = null, selMarkDef = null;
+                bool useSelDefCache = OptimizationFlags.UseDefinitionCachingForBatchWrites && selectedIds.Count > 0;
+                if (useSelDefCache)
+                {
+                    var firstEl = doc.GetElement(selectedIds.First());
+                    if (firstEl != null)
+                        (selMepMarkDef, selMarkDef) = CacheMarkDefinitions(firstEl);
+                }
+
                 using var t = new Transaction(doc, "Reset Marks for Selection");
                 t.Start();
                 foreach (var id in selectedIds)
                 {
                     var el = doc.GetElement(id);
-                    var p = el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark");
+                    Parameter p = useSelDefCache ? GetMarkParameter(el, selMepMarkDef, selMarkDef) : (el?.LookupParameter("MEP Mark") ?? el?.LookupParameter("Mark"));
                     if (p != null && !p.IsReadOnly && !string.IsNullOrEmpty(p.AsString()))
                     {
                         p.Set("");
@@ -482,7 +571,7 @@ namespace JSE_Parameter_Service.Services
         }
 
         /// <summary>
-        /// ✅ HELPER: Centralized prefix resolution with support for advanced fixes.
+        /// âœ… HELPER: Centralized prefix resolution with support for advanced fixes.
         /// If flags are enabled, uses MarkPrefixHelper for clusters/combined/multi-link rules.
         /// Otherwise falls back to legacy/stable behavior.
         /// </summary>
@@ -521,3 +610,4 @@ namespace JSE_Parameter_Service.Services
         #endregion
     }
 }
+

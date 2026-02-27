@@ -1,47 +1,76 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <Configurations>Debug 2023;Release 2023;Debug 2024;Release 2024</Configurations>
+    <Configurations>Debug R23;Debug R24;Debug R25;Debug R26;Release R23;Release R24;Release R25;Release R26</Configurations>
     <OutputType>Library</OutputType>
     <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <RootNamespace>JSE_Parameter_Service</RootNamespace>
     <AssemblyName>JSE_Parameter_Service</AssemblyName>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyVersion>2023.0.0.0</AssemblyVersion>
+    <FileVersion>2023.0.0.0</FileVersion>
   </PropertyGroup>
 
-  <!-- Configuration: Revit 2023 -->
-  <PropertyGroup Condition="$(Configuration.Contains('2023'))">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug R23' or '$(Configuration)' == 'Release R23' ">
+    <TargetFramework>net48</TargetFramework>
     <RevitVersion>2023</RevitVersion>
-    <DefineConstants>$(DefineConstants);REVIT2023</DefineConstants>
+    <AssemblyVersion>2023.0.0.0</AssemblyVersion>
+    <FileVersion>2023.0.0.0</FileVersion>
   </PropertyGroup>
 
-  <!-- Configuration: Revit 2024 -->
-  <PropertyGroup Condition="$(Configuration.Contains('2024'))">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug R24' or '$(Configuration)' == 'Release R24' ">
+    <TargetFramework>net48</TargetFramework>
     <RevitVersion>2024</RevitVersion>
-    <DefineConstants>$(DefineConstants);REVIT2024</DefineConstants>
+    <AssemblyVersion>2024.0.0.0</AssemblyVersion>
+    <FileVersion>2024.0.0.0</FileVersion>
   </PropertyGroup>
 
-  <!-- Dependencies -->
-  <ItemGroup>
-    <Reference Include="RevitAPI">
-      <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug R25' or '$(Configuration)' == 'Release R25' ">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RevitVersion>2025</RevitVersion>
+    <AssemblyVersion>2025.0.0.0</AssemblyVersion>
+    <FileVersion>2025.0.0.0</FileVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug R26' or '$(Configuration)' == 'Release R26' ">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RevitVersion>2026</RevitVersion>
+    <AssemblyVersion>2026.0.0.0</AssemblyVersion>
+    <FileVersion>2026.0.0.0</FileVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>$(RevitVersion).0.0</Version>
+    <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <!-- Resolve TaskDialog conflict in .NET Core -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net48' ">
+    <Using Alias="TaskDialog" Include="Autodesk.Revit.UI.TaskDialog" />
+    <Using Alias="TaskDialogResult" Include="Autodesk.Revit.UI.TaskDialogResult" />
+    <Using Alias="TaskDialogCommonButtons" Include="Autodesk.Revit.UI.TaskDialogCommonButtons" />
+    <Using Alias="TaskDialogIcon" Include="Autodesk.Revit.UI.TaskDialogIcon" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Extensions" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Toolkit" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Build.Tasks" Version="2.*" />
+    <!-- SQLite: System.Data.SQLite for net48 (R2023/R2024), Microsoft.Data.Sqlite for net8.0 (R2025/R2026) -->
+    <PackageReference Include="System.Data.SQLite" Version="1.0.118" Condition=" '$(TargetFramework)' == 'net48' " />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" Condition=" '$(TargetFramework)' != 'net48' " />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.6" Condition=" '$(TargetFramework)' != 'net48' " />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
     <Reference Include="PresentationCore" />
@@ -50,14 +79,23 @@
     <Reference Include="System.Xaml" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <PropertyGroup Condition=" '$(TargetFramework)' != 'net48' ">
+    <UseWpf>true</UseWpf>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <!-- Copy SQLite native DLL only for net48 (R2023/R2024) builds -->
+  <Target Name="CopySQLiteInterop" AfterTargets="Build" Condition=" '$(TargetFramework)' == 'net48' ">
     <PropertyGroup>
-      <RevitAddinsPath>$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)</RevitAddinsPath>
+      <SQLiteInteropSource>$(NuGetPackageRoot)\stub.system.data.sqlite.core.netstandard\1.0.118\runtimes\win-x64\native\SQLite.Interop.dll</SQLiteInteropSource>
     </PropertyGroup>
-    <Exec Command="if not exist &quot;$(RevitAddinsPath)&quot; mkdir &quot;$(RevitAddinsPath)&quot;" />
-    <Exec Command="copy &quot;$(ProjectDir)JSE_Parameter_Service.addin&quot; &quot;$(RevitAddinsPath)&quot;" />
-    <Exec Command="copy &quot;$(TargetDir)*.dll&quot; &quot;$(RevitAddinsPath)&quot;" />
-    <Exec Command="copy &quot;$(TargetDir)*.pdb&quot; &quot;$(RevitAddinsPath)&quot;" />
+    <Copy SourceFiles="$(SQLiteInteropSource)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(SQLiteInteropSource)" DestinationFolder="$(TargetDir)x64\" SkipUnchangedFiles="true" />
   </Target>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\RibbonIcon16.png" />
+    <Resource Include="Resources\Icons\RibbonIcon32.png" />
+  </ItemGroup>
 
 </Project>

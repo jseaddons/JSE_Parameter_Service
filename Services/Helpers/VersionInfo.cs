@@ -12,7 +12,13 @@ namespace JSE_Parameter_Service.Services.Helpers
     /// </summary>
     public static class VersionInfo
     {
-#if REVIT2024_OR_GREATER
+#if REVIT2026
+        public const int CurrentMajor = 2026;
+        public const bool Is2024Plus = true;
+#elif REVIT2025
+        public const int CurrentMajor = 2025;
+        public const bool Is2024Plus = true;
+#elif REVIT2024
         public const int CurrentMajor = 2024;
         public const bool Is2024Plus = true;
 #else
@@ -31,6 +37,7 @@ namespace JSE_Parameter_Service.Services.Helpers
 
         /// <summary>
         /// Returns a string identifier for logging or diagnostics.
+        /// e.g. "R2025"
         /// </summary>
         public static string VersionTag => $"R{CurrentMajor}";
         

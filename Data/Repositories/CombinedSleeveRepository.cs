@@ -1,6 +1,14 @@
 using System;
 using System.Collections.Generic;
+#if NET8_0_OR_GREATER
+using SQLiteConnection = Microsoft.Data.Sqlite.SqliteConnection;
+using SQLiteCommand = Microsoft.Data.Sqlite.SqliteCommand;
+using SQLiteDataReader = Microsoft.Data.Sqlite.SqliteDataReader;
+using SQLiteParameter = Microsoft.Data.Sqlite.SqliteParameter;
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
 using System.Data.SQLite;
+#endif
 using System.Linq;
 using JSE_Parameter_Service.Data;
 using JSE_Parameter_Service.Models;

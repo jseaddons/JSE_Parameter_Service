@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
@@ -15,7 +15,7 @@ namespace JSE_Parameter_Service.Services.Helpers
     {
         if (host == null) return null;
         
-        int hostId = host.Id.IntegerValue;
+        int hostId = host.Id.GetIdInt();
         // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Starting GetHostReferenceLevel for host {hostId} (Document: '{host.Document.Title}', IsLinked: {host.Document.IsLinked})");
         
         // FIXED: Always try to get the level from the linked document first for consistency
@@ -32,7 +32,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 if (linkedRefLevelParam != null && linkedRefLevelParam.StorageType == StorageType.ElementId)
                 {
                     ElementId linkedLevelId = linkedRefLevelParam.AsElementId();
-                    // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Linked level ElementId: {linkedLevelId.IntegerValue} (Valid: {linkedLevelId != ElementId.InvalidElementId})");
+                    // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Linked level ElementId: {linkedLevelId.GetIdInt()} (Valid: {linkedLevelId != ElementId.InvalidElementId})");
                     
                     if (linkedLevelId != ElementId.InvalidElementId)
                     {
@@ -40,7 +40,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                         Level? linkedLevel = host.Document.GetElement(linkedLevelId) as Level;
                         if (linkedLevel != null)
                         {
-                            // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found level in linked doc: '{linkedLevel.Name}' (ID: {linkedLevel.Id.IntegerValue})");
+                            // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found level in linked doc: '{linkedLevel.Name}' (ID: {linkedLevel.Id.GetIdInt()})");
                             
                             // Find a matching level in the active document by name
                             var matchingLevel = new FilteredElementCollector(doc)
@@ -50,7 +50,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                             
                             if (matchingLevel != null)
                             {
-                                JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found matching level in active doc: '{matchingLevel.Name}' (ID: {matchingLevel.Id.IntegerValue}) - RETURNING THIS");
+                                JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found matching level in active doc: '{matchingLevel.Name}' (ID: {matchingLevel.Id.GetIdInt()}) - RETURNING THIS");
                                 return matchingLevel;
                             }
                             else
@@ -59,12 +59,12 @@ namespace JSE_Parameter_Service.Services.Helpers
                                 
                                 // Log all available levels in active document for debugging
                                 var allLevels = new FilteredElementCollector(doc).OfClass(typeof(Level)).Cast<Level>().ToList();
-                                // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Available levels in active doc: {string.Join(", ", allLevels.Select(l => $"'{l.Name}' (ID: {l.Id.IntegerValue})"))}");
+                                // JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Available levels in active doc: {string.Join(", ", allLevels.Select(l => $"'{l.Name}' (ID: {l.Id.GetIdInt()})"))}");
                             }
                         }
                         else
                         {
-                            JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Could not get level from linked document for ElementId {linkedLevelId.IntegerValue}");
+                            JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Could not get level from linked document for ElementId {linkedLevelId.GetIdInt()}");
                         }
                     }
                 }
@@ -83,13 +83,13 @@ namespace JSE_Parameter_Service.Services.Helpers
         if (refLevelParam != null && refLevelParam.StorageType == StorageType.ElementId)
         {
             ElementId levelId = refLevelParam.AsElementId();
-            JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Fallback ElementId: {levelId.IntegerValue} (Valid: {levelId != ElementId.InvalidElementId})");
+            JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Fallback ElementId: {levelId.GetIdInt()} (Valid: {levelId != ElementId.InvalidElementId})");
             if (levelId != ElementId.InvalidElementId)
             {
                 Level? level = doc.GetElement(levelId) as Level;
                 if (level != null)
                 {
-                    JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found fallback level in active doc: '{level.Name}' (ID: {level.Id.IntegerValue}) - RETURNING THIS");
+                    JSE_Parameter_Service.Services.DebugLogger.Log($"[HostLevelHelper] DEBUG: Host {hostId} - Found fallback level in active doc: '{level.Name}' (ID: {level.Id.GetIdInt()}) - RETURNING THIS");
                     return level;
                 }
             }
@@ -99,7 +99,7 @@ namespace JSE_Parameter_Service.Services.Helpers
         return null;
     }
         /// <summary>
-        /// ✅ NEW: Gets the elevation of the reference Level for a host element.
+        /// âœ… NEW: Gets the elevation of the reference Level for a host element.
         /// CRITICAL: Returns the elevation from the LINKED document directly if the element is linked.
         /// This avoids the need for a matching level to exist in the active document just to get the elevation value.
         /// Returns null if not found.
@@ -108,9 +108,9 @@ namespace JSE_Parameter_Service.Services.Helpers
         {
             if (host == null) return null;
 
-            int hostId = host.Id.IntegerValue;
+            int hostId = host.Id.GetIdInt();
 
-            // ✅ PRIORITY 1: Try to get from linked document first
+            // âœ… PRIORITY 1: Try to get from linked document first
             if (host.Document.IsLinked)
             {
                 try
@@ -141,7 +141,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 }
             }
 
-            // ✅ PRIORITY 2: Fallback to active document level lookup (existing method)
+            // âœ… PRIORITY 2: Fallback to active document level lookup (existing method)
             // This is useful for non-linked elements or if linked lookup failed
             Level? level = GetHostReferenceLevel(doc, host);
             if (level != null)
@@ -153,7 +153,7 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
 
         /// <summary>
-        /// ✅ NEW: Gets Reference Level elevation from ClashZone.MepParameterValues.
+        /// âœ… NEW: Gets Reference Level elevation from ClashZone.MepParameterValues.
         /// Prioritizes "Reference Level" as primary source, falls back to other level parameters if not found.
         /// Returns null if not found.
         /// </summary>
@@ -165,7 +165,7 @@ namespace JSE_Parameter_Service.Services.Helpers
             if (mepParameterValues == null || mepParameterValues.Count == 0)
                 return null;
 
-            // ✅ PRIMARY: Try "Reference Level" first
+            // âœ… PRIMARY: Try "Reference Level" first
             var refLevelParam = mepParameterValues
                 .FirstOrDefault(p => string.Equals(p.Key, "Reference Level", StringComparison.OrdinalIgnoreCase));
             
@@ -182,7 +182,7 @@ namespace JSE_Parameter_Service.Services.Helpers
                 }
             }
 
-            // ✅ FALLBACK: If "Reference Level" not found, try other level parameters
+            // âœ… FALLBACK: If "Reference Level" not found, try other level parameters
             var fallbackLevelParam = mepParameterValues
                 .FirstOrDefault(p => string.Equals(p.Key, "Level", StringComparison.OrdinalIgnoreCase) ||
                                      string.Equals(p.Key, "Schedule Level", StringComparison.OrdinalIgnoreCase) ||
@@ -205,3 +205,4 @@ namespace JSE_Parameter_Service.Services.Helpers
         }
     }
 }
+

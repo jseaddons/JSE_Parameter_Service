@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace JSE_Parameter_Service.Models
 {
@@ -63,7 +63,7 @@ namespace JSE_Parameter_Service.Models
         public int? ClusterSleeveId { get; set; }
         
         /// <summary>
-        /// Revit element ID for cluster sleeve (ElementId.IntegerValue)
+        /// Revit element ID for cluster sleeve (ElementId.GetIdInt())
         /// Null if this is an individual constituent
         /// </summary>
         public int? ClusterInstanceId { get; set; }
@@ -94,3 +94,4 @@ namespace JSE_Parameter_Service.Models
         Cluster = 1
     }
 }
+

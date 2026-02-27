@@ -1,12 +1,22 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Autodesk.Revit.DB;
 using JSE_Parameter_Service.Data.Entities;
 using JSE_Parameter_Service.Services;
+#if NET8_0_OR_GREATER
+using SQLiteConnection = Microsoft.Data.Sqlite.SqliteConnection;
+using SQLiteCommand = Microsoft.Data.Sqlite.SqliteCommand;
+using SQLiteDataReader = Microsoft.Data.Sqlite.SqliteDataReader;
+using SQLiteParameter = Microsoft.Data.Sqlite.SqliteParameter;
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
+using System.Data.SQLite;
+#endif
 
 namespace JSE_Parameter_Service.Data
 {
@@ -53,29 +63,50 @@ namespace JSE_Parameter_Service.Data
             try
             {
                 var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-                var assemblyDirectory = Path.GetDirectoryName(assemblyLocation) ?? string.Empty;
+                var assemblyDirectory = string.IsNullOrEmpty(assemblyLocation)
+                    ? string.Empty
+                    : (Path.GetDirectoryName(assemblyLocation) ?? string.Empty);
 
-                _logger($"[SQLite] Assembly directory: {assemblyDirectory}");
-                VerifyDependency("System.Data.SQLite.dll", assemblyDirectory);
-                VerifyDependency(Path.Combine("x64", "SQLite.Interop.dll"), assemblyDirectory);
+                _logger($"[SQLite] Assembly directory: {(string.IsNullOrEmpty(assemblyDirectory) ? "<unknown - skipping dependency check>" : assemblyDirectory)}");
+
+#if NET8_0_OR_GREATER
+                // ✅ CRITICAL: Initialize SQLitePCL for .NET 8 (Revit 2025+)
+                try { SQLitePCL.Batteries_V2.Init(); } catch (Exception pex) { _logger($"[SQLite] ⚠️ SQLitePCL Init Warning: {pex.Message}"); }
+#else
+                // ✅ FIX: Skip dependency verification if assembly directory is unknown.
+                // In Revit 2024+ (single-file/bundle), Assembly.Location returns empty string.
+                // VerifyDependency would then call Directory.CreateDirectory(null) → ArgumentNullException 'path1'.
+                if (!string.IsNullOrEmpty(assemblyDirectory))
+                {
+                    VerifyDependency("System.Data.SQLite.dll", assemblyDirectory);
+                    VerifyDependency(Path.Combine("x64", "SQLite.Interop.dll"), assemblyDirectory);
+                }
+#endif
 
                 var filtersDirectory = ProjectPathService.GetFiltersDirectory(document);
                 Directory.CreateDirectory(filtersDirectory);
                 _logger($"[SQLite] Filters directory: {filtersDirectory}");
 
-                var projectName = document.Title ?? "Default";
-                var safeProjectName = Regex.Replace(projectName, @"[^\w\s-]", string.Empty).Replace(" ", "_");
+                // ✅ FIX: Strip .rvt extension before sanitizing filename to match JSE_MEPOPENING_23 naming
+                var rawTitle = document.Title ?? "Default";
+                if (rawTitle.EndsWith(".rvt", StringComparison.OrdinalIgnoreCase))
+                    rawTitle = System.IO.Path.GetFileNameWithoutExtension(rawTitle);
+                var safeProjectName = Regex.Replace(rawTitle, @"[^\w\s-]", string.Empty).Replace(" ", "_");
                 _databasePath = Path.Combine(filtersDirectory, $"{safeProjectName}_SleevePersistence.db");
                 _logger($"[SQLite] Database path: {_databasePath}");
 
+#if NET8_0_OR_GREATER
+                // Microsoft.Data.Sqlite: plain connection string
+                _connection = new SQLiteConnection($"Data Source={_databasePath}");
+#else
                 var builder = new SQLiteConnectionStringBuilder
                 {
                     DataSource = _databasePath,
                     ForeignKeys = true,
                     JournalMode = SQLiteJournalModeEnum.Wal
                 };
-
                 _connection = new SQLiteConnection(builder.ConnectionString);
+#endif
                 _connection.Open();
                 _logger("[SQLite] ✅ Connection opened successfully");
 
@@ -187,7 +218,8 @@ namespace JSE_Parameter_Service.Data
                 try
                 {
                     var destination = Path.Combine(assemblyDirectory, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destination) ?? assemblyDirectory);
+                    var destDir = Path.GetDirectoryName(destination);
+                    if (!string.IsNullOrEmpty(destDir)) Directory.CreateDirectory(destDir);
                     File.Copy(candidate, destination, overwrite: true);
                     _logger($"[SQLite] ✅ Copied dependency from NuGet cache: {candidate}");
                     return;

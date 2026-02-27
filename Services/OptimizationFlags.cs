@@ -864,6 +864,16 @@ namespace JSE_Parameter_Service.Services
         public static bool UseBatchParameterLookups { get; set; } = true;
 
         /// <summary>
+        /// Enable Definition object caching for batch parameter writes (10x faster parameter access).
+        /// When true: Caches Definition objects from a representative element, uses get_Parameter(Definition) instead of LookupParameter(string).
+        /// When false: Uses LookupParameter(string) per element per parameter (legacy behavior, ~0.5ms per call).
+        /// Default: true (enabled - safe optimization, same functional result).
+        /// Location: Services/ParameterTransferService.Batch.cs, Services/MarkParameterService.cs
+        /// Expected gain: 10x faster parameter access (~0.05ms vs ~0.5ms per lookup).
+        /// </summary>
+        public static bool UseDefinitionCachingForBatchWrites { get; set; } = true;
+
+        /// <summary>
         /// Enable batch parameter capture during refresh (ParameterCaptureService).
         /// When true: Collects all unique element IDs first, gets elements once and caches them, then processes parameters (30-50% faster).
         /// When false: Gets elements one-by-one per clash zone (current behavior).

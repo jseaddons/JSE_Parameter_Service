@@ -41,6 +41,14 @@ namespace JSE_Parameter_Service.Services
         }
 
         /// <summary>
+        /// Logs a warning message.
+        /// </summary>
+        public static void LogWarning(string message)
+        {
+            LogInternal($"[WARNING] {message}");
+        }
+
+        /// <summary>
         /// Logs informational messages.
         /// </summary>
         public static void LogInfo(string message)

@@ -45,7 +45,7 @@ namespace JSE_Parameter_Service.Services
             {
                 string appDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "JSE_MEP_Openings",
+                    "JSE_Parameter_Service",
                     "Logs"
                 );
                 
@@ -72,7 +72,7 @@ namespace JSE_Parameter_Service.Services
             {
                 // ✅ CRITICAL FIX: Create base folder first, then Logs subfolder with version tag
                 var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var baseFolder = Path.Combine(appData, "JSE_MEP_Openings");
+                var baseFolder = Path.Combine(appData, "JSE_Parameter_Service");
                 
                 // Ensure base folder exists first
                 if (!Directory.Exists(baseFolder))
@@ -107,14 +107,14 @@ namespace JSE_Parameter_Service.Services
             // ✅ DEPLOYMENT FIX: Priority 2 removed - NEVER use hardcoded project paths
             // All logs now go to AppData (Priority 1) regardless of development vs deployment
             // This ensures deployed users don't see errors about missing C:\JSE_CSharp_Projects paths
-            // Development team should check AppData\Roaming\JSE_MEP_Openings\Logs\R2023 for logs
+            // Development team should check AppData\Roaming\JSE_Parameter_Service\Logs\R2023 for logs
 
             // Priority 3: Use Temp directory (last resort - always writable) with version tag
             try
             {
                 // ✅ VERSION-SEPARATED LOGS: Include version tag in temp path too
                 string versionTag = VersionInfo.VersionTag; // "R2023" or "R2024"
-                string tempPath = Path.Combine(Path.GetTempPath(), "JSE_MEP_Openings_Logs", versionTag);
+                string tempPath = Path.Combine(Path.GetTempPath(), "JSE_Parameter_Service_Logs", versionTag);
                 
                 if (TryCreateDirectory(tempPath))
                     return tempPath;
@@ -131,7 +131,7 @@ namespace JSE_Parameter_Service.Services
                 string versionTag = VersionInfo.VersionTag; // "R2023" or "R2024"
                 string desktopPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    "JSE_MEP_Openings_Logs",
+                    "JSE_Parameter_Service_Logs",
                     versionTag
                 );
                 
@@ -155,7 +155,7 @@ namespace JSE_Parameter_Service.Services
                     return false;
 
                 // Directory.CreateDirectory will create all parent directories if they don't exist
-                // This ensures JSE_MEP_Openings is created if it doesn't exist
+                // This ensures JSE_Parameter_Service is created if it doesn't exist
                 if (!Directory.Exists(path))
                 {
                     Directory.CreateDirectory(path);
@@ -203,7 +203,7 @@ namespace JSE_Parameter_Service.Services
                 {
                     // During initialization, use AppData path directly (same logic as InitializeLogDirectory)
                     string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    string baseFolder = Path.Combine(appData, "JSE_MEP_Openings");
+                    string baseFolder = Path.Combine(appData, "JSE_Parameter_Service");
                     diagnosticLogPath = Path.Combine(baseFolder, "Logs", "safefilelogger_diagnostic.log");
                     
                     // Ensure directory exists
@@ -218,7 +218,7 @@ namespace JSE_Parameter_Service.Services
                         {
                             lastException = dirEx;
                             // Try fallback to Desktop
-                            string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_MEP_Openings_Diagnostic.log");
+                            string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_Parameter_Service_Diagnostic.log");
                             try
                             {
                                 File.AppendAllText(desktopPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [SAFEFILELOGGER] Directory creation failed: {dirEx.Message}, Operation={operation}\n");
@@ -242,7 +242,7 @@ namespace JSE_Parameter_Service.Services
                 // ✅ FIX: Try fallback to Desktop if AppData fails
                 try
                 {
-                    string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_MEP_Openings_Diagnostic.log");
+                    string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_Parameter_Service_Diagnostic.log");
                     string fallbackEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [SAFEFILELOGGER] ERROR: Failed to write diagnostic log. Operation={operation}, Exception={ex.Message}, Type={ex.GetType().Name}, StackTrace={ex.StackTrace}\n";
                     File.AppendAllText(desktopPath, fallbackEntry);
                 }
@@ -278,7 +278,7 @@ namespace JSE_Parameter_Service.Services
                 {
                     // During initialization, use AppData path directly
                     string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    string baseFolder = Path.Combine(appData, "JSE_MEP_Openings");
+                    string baseFolder = Path.Combine(appData, "JSE_Parameter_Service");
                     diagnosticLogPath = Path.Combine(baseFolder, "Logs", "safefilelogger_diagnostic.log");
                     
                     // Ensure directory exists
@@ -293,7 +293,7 @@ namespace JSE_Parameter_Service.Services
                         {
                             lastException = dirEx;
                             // Try fallback to Desktop
-                            string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_MEP_Openings_Diagnostic.log");
+                            string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_Parameter_Service_Diagnostic.log");
                             try
                             {
                                 File.AppendAllText(desktopPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [SAFEFILELOGGER] Directory creation failed: {dirEx.Message}, fileName={fileName}\n");
@@ -317,7 +317,7 @@ namespace JSE_Parameter_Service.Services
                 // ✅ FIX: Try fallback to Desktop if AppData fails
                 try
                 {
-                    string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_MEP_Openings_Diagnostic.log");
+                    string desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "JSE_Parameter_Service_Diagnostic.log");
                     string fallbackEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [SAFEFILELOGGER] ERROR: Failed to write diagnostic log. fileName={fileName}, Exception={ex.Message}, Type={ex.GetType().Name}, StackTrace={ex.StackTrace}\n";
                     File.AppendAllText(desktopPath, fallbackEntry);
                 }
@@ -516,7 +516,7 @@ namespace JSE_Parameter_Service.Services
                 // Also check AppData directory status
                 string appDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "JSE_MEP_Openings",
+                    "JSE_Parameter_Service",
                     "Logs"
                 );
                 bool appDataExists = Directory.Exists(appDataPath);

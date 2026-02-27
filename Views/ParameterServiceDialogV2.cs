@@ -12,16 +12,13 @@ using Point = System.Drawing.Point;
 using Size = System.Drawing.Size;
 using Color = System.Drawing.Color;
 using Font = System.Drawing.Font;
+using FontStyle = System.Drawing.FontStyle;
 using JSE_Parameter_Service.Services;
 using JSE_Parameter_Service.Commands;
 using JSE_Parameter_Service.Data;
 using JSE_Parameter_Service.Data.Repositories;
 using JSE_Parameter_Service.Helpers;
-using JSE_Parameter_Service.Models;
-using JSE_Parameter_Service.Services;
 using JSE_Parameter_Service.Services.Logging;
-using System.Drawing;
-using System.Drawing;
 
 namespace JSE_Parameter_Service.Views
 {
@@ -48,11 +45,12 @@ namespace JSE_Parameter_Service.Views
         private WinForms.TextBox _pipePrefixTextBox = null!;
         private WinForms.TextBox _cableTrayPrefixTextBox = null!;
         private WinForms.TextBox _damperPrefixTextBox = null!;
-        private WinForms.Panel _systemTypeOverridesPanel = null!;
-        private List<WinForms.Panel> _systemTypeRows = new List<WinForms.Panel>();
-        private List<string> _systemTypeOptions = new List<string>();
+        private WinForms.TabControl _systemTypeOverridesTabs = null!;
+        private Dictionary<string, WinForms.Panel> _systemTypeOverridePanels = new Dictionary<string, WinForms.Panel>();
+        private Dictionary<string, List<WinForms.Panel>> _systemTypeOverrideRows = new Dictionary<string, List<WinForms.Panel>>();
+        private Dictionary<string, List<string>> _systemTypeOptionsPerCategory = new Dictionary<string, List<string>>();
 
-        // ✅ NEW: Track last focused category for system type dropdown population
+        // Track last focused category for prefix resolution
         private string _lastFocusedCategory = null;
 
         // Number format
@@ -93,6 +91,14 @@ namespace JSE_Parameter_Service.Views
             _document = document;
             _uiDocument = uiDocument;
             _parameterExtractionService = new Services.ParameterExtractionService();
+
+            // ✅ BUILD STAMP: Log deployed DLL timestamp so we can confirm which build is running
+            var buildTime = Services.Helpers.VersionInfo.GetBuildTimestampString();
+            SafeFileLogger.SafeAppendText("parameter_service_debug.log",
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ══════════════════════════════════════════\n" +
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] DLL BUILD TIMESTAMP : {buildTime}\n" +
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Revit Version       : {Services.Helpers.VersionInfo.VersionTag}\n" +
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ══════════════════════════════════════════\n");
 
             InitializeComponent();
             
@@ -793,29 +799,23 @@ namespace JSE_Parameter_Service.Views
             _leftPrefixPanel.Controls.Add(systemTypeLabel);
             yPos += 25;
 
-            // Container panel for system type overrides (no scroll, expand freely)
-            _systemTypeOverridesPanel = new WinForms.Panel
+            // Load system types from ALL placed sleeves initially (no category filter)
+            LoadSystemTypeOverrideOptions(null);
+
+            // TabControl for per-category system type overrides (same pattern as parameter transfer tabs)
+            _systemTypeOverridesTabs = new WinForms.TabControl
             {
                 Location = new Point(10, yPos),
-                Size = new Size(_leftPrefixPanel.Width - 25, 0),
-                BackColor = Color.FromArgb(240, 248, 255),
-                BorderStyle = BorderStyle.FixedSingle,
-                AutoScroll = false // No scrollbars - free flow
+                Size = new Size(_leftPrefixPanel.Width - 25, _leftPrefixPanel.Height - yPos - 10),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
-            _leftPrefixPanel.Controls.Add(_systemTypeOverridesPanel);
+            _leftPrefixPanel.Controls.Add(_systemTypeOverridesTabs);
 
-            // ✅ CRITICAL FIX: Load system types from ALL placed sleeves initially (no category filter)
-            // This ensures we get system types from all categories that have placed sleeves
-            LoadSystemTypeOverrideOptions(null); // Explicitly pass null to load all
-
-            // Add header row with "+" button
-            CreateSystemTypeHeader();
-
-            // Add 4 default rows
-            for (int i = 0; i < 4; i++)
-            {
-                AddSystemTypeRow("<Select>", "");
-            }
+            // Create 4 category tabs
+            CreateSystemTypeOverrideTab("Ducts");
+            CreateSystemTypeOverrideTab("Pipes");
+            CreateSystemTypeOverrideTab("Cable Trays");
+            CreateSystemTypeOverrideTab("Duct Accessories");
         }
 
         /// <summary>
@@ -1636,70 +1636,94 @@ namespace JSE_Parameter_Service.Views
         }
 
         /// <summary>
-        /// Create header row for System Type Overrides
+        /// Create a tab for a specific category's system type overrides.
+        /// Each tab has its own scrollable panel, header row with "+" button, and default empty rows.
         /// </summary>
-        private void CreateSystemTypeHeader()
+        private void CreateSystemTypeOverrideTab(string categoryName)
         {
+            var tabPage = new WinForms.TabPage(categoryName);
+            _systemTypeOverridesTabs.TabPages.Add(tabPage);
+
+            var panel = new WinForms.Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.FromArgb(240, 248, 255)
+            };
+            tabPage.Controls.Add(panel);
+
+            _systemTypeOverridePanels[categoryName] = panel;
+            _systemTypeOverrideRows[categoryName] = new List<WinForms.Panel>();
+
+            // Header row with column labels + "+" button
             var header = new WinForms.Panel
             {
                 Location = new Point(2, 2),
-                Size = new Size(_systemTypeOverridesPanel.Width - 6, 25),
-                BackColor = Color.FromArgb(220, 235, 250)
+                Size = new Size(panel.Width - 20, 25),
+                BackColor = Color.FromArgb(220, 235, 250),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
-            _systemTypeOverridesPanel.Controls.Add(header);
+            panel.Controls.Add(header);
 
-            // Column headers
-            var valueLabel = new WinForms.Label
+            var sysTypeLabel = new WinForms.Label
             {
                 Text = "System Type",
                 Location = new Point(3, 5),
                 Size = new Size(100, 16),
                 Font = new Font("Microsoft Sans Serif", 8.5F, FontStyle.Bold)
             };
-            header.Controls.Add(valueLabel);
+            header.Controls.Add(sysTypeLabel);
 
-            var renameLabel = new WinForms.Label
+            var prefixLabel = new WinForms.Label
             {
                 Text = "Prefix",
                 Location = new Point(140, 5),
                 Size = new Size(60, 16),
                 Font = new Font("Microsoft Sans Serif", 8.5F, FontStyle.Bold)
             };
-            header.Controls.Add(renameLabel);
+            header.Controls.Add(prefixLabel);
 
-            // "+" button aligned with close buttons (same X position)
             var addBtn = new WinForms.Button
             {
                 Text = "+",
-                Location = new Point(_systemTypeOverridesPanel.Width - 30, 2), // Aligned with close button X position
+                Location = new Point(header.Width - 28, 2),
                 Size = new Size(22, 22),
                 BackColor = Color.FromArgb(200, 255, 200),
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right // Keep aligned to right edge
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
-            addBtn.Click += (s, e) => AddSystemTypeRow("<Select>", "");
+            addBtn.Click += (s, e) => AddSystemTypeRow(categoryName, "<Select>", "");
             header.Controls.Add(addBtn);
+
+            // Add 2 default empty rows per tab
+            AddSystemTypeRow(categoryName, "<Select>", "");
+            AddSystemTypeRow(categoryName, "<Select>", "");
         }
 
         /// <summary>
-        /// Add a System Type Override row
+        /// Add a System Type Override row to a specific category tab
         /// </summary>
-        private void AddSystemTypeRow(string systemType, string prefix)
+        private void AddSystemTypeRow(string category, string systemType, string prefix)
         {
+            if (!_systemTypeOverridePanels.ContainsKey(category) || !_systemTypeOverrideRows.ContainsKey(category))
+                return;
+
+            var containerPanel = _systemTypeOverridePanels[category];
+            var rows = _systemTypeOverrideRows[category];
+
             int rowHeight = 26;
-            int top = 30 + (_systemTypeRows.Count * rowHeight);
+            int top = 30 + (rows.Count * rowHeight);
 
             var row = new WinForms.Panel
             {
                 Location = new Point(2, top),
-                Size = new Size(_systemTypeOverridesPanel.Width - 6, rowHeight),
+                Size = new Size(containerPanel.Width - 20, rowHeight),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 BackColor = Color.White
             };
-            _systemTypeOverridesPanel.Controls.Add(row);
+            containerPanel.Controls.Add(row);
 
-            // System Type dropdown (like ConVoid)
             var systemTypeCombo = new WinForms.ComboBox
             {
                 Location = new Point(3, 3),
@@ -1708,22 +1732,12 @@ namespace JSE_Parameter_Service.Views
                 AutoCompleteMode = AutoCompleteMode.SuggestAppend,
                 AutoCompleteSource = AutoCompleteSource.ListItems
             };
-
-            // ✅ CRITICAL FIX: Populate dropdown ONCE when row is created - don't reload on DropDown event
-            // This prevents memory access violations from database/Revit API calls during dropdown opening
-            // The dropdown will use the cached _systemTypeOptions that were loaded when dialog opened
-            PopulateSystemTypeDropdown(systemTypeCombo, systemType);
-
-            // ✅ REMOVED: DropDown event handler that was causing memory access violations
-            // Instead, system types are loaded once when dialog opens and cached in _systemTypeOptions
-            // If user needs fresh data, they can close and reopen the dialog
+            PopulateSystemTypeDropdown(systemTypeCombo, category, systemType);
             row.Controls.Add(systemTypeCombo);
 
-            // Arrow
             var arrow = new WinForms.Label { Text = "→", Location = new Point(138, 6), Size = new Size(15, 16) };
             row.Controls.Add(arrow);
 
-            // Prefix textbox
             var prefixTextBox = new WinForms.TextBox
             {
                 Location = new Point(158, 3),
@@ -1732,133 +1746,222 @@ namespace JSE_Parameter_Service.Views
             };
             row.Controls.Add(prefixTextBox);
 
-            // Close button (aligned with parameter mapping close buttons)
             var closeBtn = new WinForms.Button
             {
                 Text = "×",
-                Location = new Point(row.Width - 30, 2), // Same position as parameter rows
+                Location = new Point(row.Width - 30, 2),
                 Size = new Size(22, 22),
                 BackColor = Color.FromArgb(255, 200, 200),
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold)
+                Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Bold),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
+            string cat = category; // capture for closure
             closeBtn.Click += (s, e) => {
-                _systemTypeOverridesPanel.Controls.Remove(row);
-                _systemTypeRows.Remove(row);
-                RepositionSystemTypeRows();
+                containerPanel.Controls.Remove(row);
+                _systemTypeOverrideRows[cat].Remove(row);
+                RepositionSystemTypeRows(cat);
             };
             row.Controls.Add(closeBtn);
 
-            _systemTypeRows.Add(row);
-
-            // Update panel height (freely expand, no max limit)
-            _systemTypeOverridesPanel.Height = _systemTypeRows.Count * rowHeight + 32;
+            rows.Add(row);
         }
 
         /// <summary>
-        /// Load available System Type / Service Type values from persisted XML (and future data sources).
-        /// Populates <see cref="_systemTypeOptions"/> for use by override rows.
-        /// ✅ TESTING MODE: Always loads ALL system types and service types from ALL categories (ignores category filter)
+        /// Load available System Type / Service Type values per category from the database.
+        /// Populates _systemTypeOptionsPerCategory with category-specific dropdown options.
+        /// Ducts/Pipes/Duct Accessories use MepSystemType, Cable Trays use MepServiceType.
         /// </summary>
         private void LoadSystemTypeOverrideOptions(string category = null)
         {
+            _systemTypeOptionsPerCategory.Clear();
+
+            // Category-to-DB filter mapping
+            var categoryDbFilters = new Dictionary<string, (string column, string[] mepCategories)>
+            {
+                { "Ducts", ("MepSystemType", new[] { "Ducts", "Duct Fittings" }) },
+                { "Pipes", ("MepSystemType", new[] { "Pipes", "Pipe Fittings", "Plumbing Fixtures" }) },
+                { "Cable Trays", ("MepServiceType", new[] { "Cable Trays", "Conduits" }) },
+                { "Duct Accessories", ("MepSystemType", new[] { "Duct Accessories" }) }
+            };
+
+            SafeFileLogger.SafeAppendText("parameter_service_debug.log",
+                $"[{DateTime.Now}] [LoadSystemTypeOverrideOptions] ENTER — _document is {(_document == null ? "NULL" : $"'{_document.Title}'")}, category='{category}'\n");
+
+            if (_document == null)
+            {
+                SafeFileLogger.SafeAppendText("parameter_service_debug.log",
+                    $"[{DateTime.Now}] [LoadSystemTypeOverrideOptions] SKIPPED — _document is null\n");
+                return;
+            }
+
             try
             {
-                var collected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                if (_document != null)
+                using (var context = new Data.SleeveDbContext(_document, msg => DebugLogger.Info($"[SQLITE] {msg}")))
                 {
-                    var catalogService = new SystemTypeCatalogService(msg =>
+                    // ✅ DIAGNOSTIC: Log the resolved DB path so we can verify it matches MEPOPENING_23
+                    var debugFiltersDir = ProjectPathService.GetFiltersDirectory(_document);
+                    SafeFileLogger.SafeAppendText("parameter_service_debug.log",
+                        $"[{DateTime.Now}] [LoadSystemTypeOverrideOptions] Resolved FiltersDirectory: {debugFiltersDir}\n");
+
+                    foreach (var kvp in categoryDbFilters)
                     {
-                        if (!DeploymentConfiguration.DeploymentMode)
+
+                        var catName = kvp.Key;
+                        var column = kvp.Value.column;
+                        var mepCategories = kvp.Value.mepCategories;
+
+                        var collected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                        // Build WHERE clause for MepElementCategory IN (...)
+                        var inClause = string.Join(", ", mepCategories.Select(c => $"'{c.Replace("'", "''")}'"));
+
+                        using (var cmd = context.Connection.CreateCommand())
                         {
-                            DebugLogger.Info(msg);
+                            cmd.CommandText = $@"
+                                SELECT DISTINCT {column}
+                                FROM ClashZones
+                                WHERE {column} IS NOT NULL
+                                  AND {column} != ''
+                                  AND MepCategory IN ({inClause})";
+
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var val = reader[0]?.ToString()?.Trim();
+                                    if (!string.IsNullOrWhiteSpace(val))
+                                        collected.Add(val);
+                                }
+                            }
                         }
-                        SafeFileLogger.SafeAppendText("parameter_service_debug.log", $"[{DateTime.Now}] {msg}\n");
-                    });
 
-                    // ✅ TESTING MODE: Always load ALL types from ALL categories (ignore category parameter)
-                    var catalog = catalogService.Load(_document, category: null);
+                        // Also include abbreviations for Ducts/Pipes/Duct Accessories
+                        if (column == "MepSystemType")
+                        {
+                            using (var cmd = context.Connection.CreateCommand())
+                            {
+                                cmd.CommandText = $@"
+                                    SELECT DISTINCT MepElementSystemAbbreviation
+                                    FROM ClashZones
+                                    WHERE MepElementSystemAbbreviation IS NOT NULL
+                                      AND MepElementSystemAbbreviation != ''
+                                      AND MepCategory IN ({inClause})";
 
-                    // ✅ LOAD ALL: Include both SystemTypes and ServiceTypes from all categories
-                    foreach (var value in catalog.SystemTypes ?? Enumerable.Empty<string>())
-                    {
-                        if (!string.IsNullOrWhiteSpace(value))
-                            collected.Add(value.Trim());
+                                using (var reader = cmd.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        var val = reader[0]?.ToString()?.Trim();
+                                        if (!string.IsNullOrWhiteSpace(val))
+                                            collected.Add(val);
+                                    }
+                                }
+                            }
+                        }
+
+                        _systemTypeOptionsPerCategory[catName] = collected
+                            .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+
+                        SafeFileLogger.SafeAppendText("parameter_service_debug.log",
+                            $"[{DateTime.Now}] [ParameterServiceDialogV2] '{catName}' tab: {collected.Count} system types loaded\n");
                     }
-                    foreach (var value in catalog.ServiceTypes ?? Enumerable.Empty<string>())
-                    {
-                        if (!string.IsNullOrWhiteSpace(value))
-                            collected.Add(value.Trim());
-                    }
-                }
-
-                _systemTypeOptions = collected
-                    .Where(v => !string.IsNullOrWhiteSpace(v))
-                    .Select(v => v.Trim())
-                    .OrderBy(v => v, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                // ✅ ENHANCED LOGGING: Log what will be populated in the dropdown
-                var categoryInfo = string.IsNullOrWhiteSpace(category) ? "all categories" : $"category '{category}'";
-                if (_systemTypeOptions.Count > 0)
-                {
-                    SafeFileLogger.SafeAppendText("parameter_service_debug.log",
-                        $"[{DateTime.Now}] [ParameterServiceDialogV2] ✅ System Type dropdown will be populated with {_systemTypeOptions.Count} options for {categoryInfo}: {string.Join(", ", _systemTypeOptions)}\n");
-                }
-                else
-                {
-                    SafeFileLogger.SafeAppendText("parameter_service_debug.log",
-                        $"[{DateTime.Now}] [ParameterServiceDialogV2] ⚠️ System Type dropdown will be EMPTY for {categoryInfo} - no system/service types found in placed sleeves\n");
-                }
-
-                if (_systemTypeOptions.Count == 0)
-                {
-                    _systemTypeOptions = new List<string>();
                 }
             }
             catch (Exception ex)
             {
-                _systemTypeOptions = new List<string>();
                 if (!DeploymentConfiguration.DeploymentMode)
-                {
-                    DebugLogger.Warning($"[ParameterServiceDialogV2] Failed to load system type catalog: {ex.Message}");
-                }
+                    DebugLogger.Warning($"[ParameterServiceDialogV2] Failed to load per-category system types: {ex.Message}");
                 SafeFileLogger.SafeAppendText("parameter_service_debug.log",
-                    $"[{DateTime.Now}] [ParameterServiceDialogV2] Failed to load system type catalog: {ex.Message}\n");
+                    $"[{DateTime.Now}] [ParameterServiceDialogV2] Failed to load per-category system types: {ex.Message}\n");
             }
         }
 
         /// <summary>
-        /// Reposition System Type rows after deletion
+        /// Reposition System Type rows after deletion for a specific category
         /// </summary>
-        private void RepositionSystemTypeRows()
+        private void RepositionSystemTypeRows(string category)
         {
+            if (!_systemTypeOverrideRows.ContainsKey(category)) return;
+            var rows = _systemTypeOverrideRows[category];
             int rowHeight = 26;
-            for (int i = 0; i < _systemTypeRows.Count; i++)
+            for (int i = 0; i < rows.Count; i++)
             {
-                _systemTypeRows[i].Location = new Point(2, 30 + (i * rowHeight));
+                rows[i].Location = new Point(2, 30 + (i * rowHeight));
             }
         }
 
         /// <summary>
-        /// ✅ NEW: Populate system type dropdown with available options
+        /// Restore saved overrides into a category tab, replacing default empty rows.
         /// </summary>
-        private void PopulateSystemTypeDropdown(WinForms.ComboBox comboBox, string selectedValue = null)
+        private void RestoreOverridesToTab(string category, Dictionary<string, string> overrides)
+        {
+            if (!_systemTypeOverridePanels.ContainsKey(category) || !_systemTypeOverrideRows.ContainsKey(category))
+                return;
+
+            if (overrides == null || overrides.Count == 0) return;
+
+            var panel = _systemTypeOverridePanels[category];
+            var rows = _systemTypeOverrideRows[category];
+
+            // Clear existing default rows
+            foreach (var row in rows.ToList())
+            {
+                panel.Controls.Remove(row);
+                row.Dispose();
+            }
+            rows.Clear();
+
+            // Add saved rows
+            foreach (var kvp in overrides)
+            {
+                if (!string.IsNullOrWhiteSpace(kvp.Key))
+                    AddSystemTypeRow(category, kvp.Key, kvp.Value);
+            }
+
+            // Fill to minimum 2 empty rows
+            while (rows.Count < 2)
+                AddSystemTypeRow(category, "<Select>", "");
+
+            RemarkDebugLogger.LogInfo($"[UI-PERSIST] Restored {overrides.Count} overrides to '{category}' tab");
+        }
+
+        /// <summary>
+        /// Collect system type override rows from a category tab into the target dictionary.
+        /// </summary>
+        private void CollectOverridesFromTab(string category, Dictionary<string, string> target)
+        {
+            if (!_systemTypeOverrideRows.ContainsKey(category)) return;
+            foreach (var row in _systemTypeOverrideRows[category])
+            {
+                var comboBox = row.Controls.OfType<WinForms.ComboBox>().FirstOrDefault();
+                var textBox = row.Controls.OfType<WinForms.TextBox>().FirstOrDefault();
+                if (comboBox != null && textBox != null && !string.IsNullOrWhiteSpace(comboBox.Text) && comboBox.Text != "<Select>")
+                {
+                    target[comboBox.Text.Trim()] = textBox.Text.Trim();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Populate system type dropdown with category-specific options.
+        /// Each tab only shows system/service types relevant to that category.
+        /// </summary>
+        private void PopulateSystemTypeDropdown(WinForms.ComboBox comboBox, string category, string selectedValue = null)
         {
             comboBox.Items.Clear();
             comboBox.Items.Add("<Select>");
 
-            // ✅ CRITICAL FIX: Only show system types from placed sleeves - NO hardcoded fallback
-            // If no system types found, dropdown will only show "<Select>"
-            var options = _systemTypeOptions ?? new List<string>();
+            List<string> options = null;
+            if (!string.IsNullOrEmpty(category))
+                _systemTypeOptionsPerCategory.TryGetValue(category, out options);
+            options = options ?? new List<string>();
 
             foreach (var option in options)
             {
                 if (!string.IsNullOrWhiteSpace(option))
-                {
                     comboBox.Items.Add(option);
-                }
             }
 
             if (!string.IsNullOrWhiteSpace(selectedValue) && comboBox.Items.Contains(selectedValue))
@@ -1979,10 +2082,14 @@ namespace JSE_Parameter_Service.Views
         /// </summary>
         private void OnTransferParametersClick(object sender, EventArgs e)
         {
+            const string transferLog = "parameter_transfer.log";
+            SafeFileLogger.SafeAppendTextAlways(transferLog, "========== PARAMETER TRANSFER STARTED (UI Button) ==========");
+
             try
             {
                 if (_document == null || _uiDocument == null)
                 {
+                    SafeFileLogger.SafeAppendTextAlways(transferLog, "[UI STEP 0 FAILED] Document or UIDocument is null");
                     WinForms.MessageBox.Show("Document not available.", "Error", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Error);
                     return;
                 }
@@ -2076,12 +2183,12 @@ namespace JSE_Parameter_Service.Views
 
                         var openings = sleevesToProcess.Select(fi => fi.Id).ToList();
 
+                        SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 1] Found {openings.Count} openings in document. Families: [{string.Join(", ", familyNames)}]");
                         DebugLogger.Info($"[ParameterServiceDialogV2] Found {openings.Count} opening sleeves in document for parameter transfer");
-                        string transferDebugLogPath = SafeFileLogger.GetLogFilePath("transfer_debug.log");
-                        System.IO.File.AppendAllText(transferDebugLogPath, $"[{DateTime.Now}] [ParameterServiceDialogV2] Found {openings.Count} opening sleeves: {string.Join(", ", familyNames)}\n");
 
                         if (openings.Count == 0)
                         {
+                            SafeFileLogger.SafeAppendTextAlways(transferLog, "[UI STEP 1 FAILED] No openings found — aborting");
                             progressForm.Close();
                             WinForms.MessageBox.Show("No openings found in the document. Please place sleeves first.",
                                 "No Openings", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Information);
@@ -2093,12 +2200,15 @@ namespace JSE_Parameter_Service.Views
 
                         if (allMappings.Count == 0)
                         {
+                            SafeFileLogger.SafeAppendTextAlways(transferLog, "[UI STEP 2 FAILED] No parameter mappings configured — aborting");
                             progressForm.Close();
                             WinForms.MessageBox.Show("No parameter mappings found. Please add parameter mappings first.",
                                 "No Mappings", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Warning);
                             return;
                         }
 
+                        var mappingDetails = string.Join(", ", allMappings.Where(m => m.IsEnabled).Select(m => $"{m.SourceParameter}->{m.TargetParameter}({m.TransferType})"));
+                        SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 2] Collected {allMappings.Count} mappings: [{mappingDetails}]");
                         DebugLogger.Info($"[ParameterServiceDialogV2] Collected {allMappings.Count} parameter mappings from UI");
 
                         // ✅ CRITICAL FIX: Add source parameter names to learned keys whitelist
@@ -2123,13 +2233,22 @@ namespace JSE_Parameter_Service.Views
                         // This method loads snapshots from database (saved during placement) and uses them for transfer
                         // The 3-arg ExecuteTransferConfiguration also calls this internally, but calling directly ensures
                         // we're using the snapshot-based transfer path
+                        SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 3] Starting transaction. UseRefactor={Services.OptimizationFlags.UseParameterTransferRefactor}");
                         ParameterTransferResult result;
+                        var sw = System.Diagnostics.Stopwatch.StartNew();
                         using (var transaction = new Transaction(_document, "Transfer Parameters to Sleeves"))
                         {
                             transaction.Start();
                             result = transferService.ExecuteTransferConfigurationInTransaction(_document, openings, config, _uiDocument);
                             transaction.Commit();
                         }
+                        sw.Stop();
+
+                        SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 4] Transfer done in {sw.ElapsedMilliseconds}ms — Success={result.Success}, Transferred={result.TransferredCount}, Failed={result.FailedCount}, Message='{result.Message}'");
+                        if (result.Errors.Count > 0)
+                            SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 4 ERRORS] {string.Join("; ", result.Errors.Take(10))}");
+                        if (result.Warnings.Count > 0)
+                            SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI STEP 4 WARNINGS] {string.Join("; ", result.Warnings.Take(10))}");
 
                         progressForm.Close();
 
@@ -2147,11 +2266,13 @@ namespace JSE_Parameter_Service.Views
                             WinForms.MessageBox.Show($"Transfer failed: {result.Message}",
                                 "Transfer Error", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Error);
                         }
+                        SafeFileLogger.SafeAppendTextAlways(transferLog, "========== PARAMETER TRANSFER FINISHED ==========\n");
                     } // End of performance monitor using block
                 }
             }
             catch (Exception ex)
             {
+                SafeFileLogger.SafeAppendTextAlways(transferLog, $"[UI FATAL ERROR] {ex.Message}\n{ex.StackTrace}");
                 WinForms.MessageBox.Show($"Error during transfer: {ex.Message}",
                     "Error", WinForms.MessageBoxButtons.OK, WinForms.MessageBoxIcon.Error);
             }
@@ -2887,28 +3008,11 @@ namespace JSE_Parameter_Service.Views
                 RemarkDebugLogger.LogInfo($"[SmartReset] Changes detected - Duct:{ductChanged}, Pipe:{pipeChanged}, Tray:{cableTrayChanged}, Damper:{damperChanged}, Project:{projectChanged}");
             }
 
-            // System Type Overrides
-            foreach (var row in _systemTypeRows)
-            {
-                // ✅ LOGIC UPDATE: Checkbox is redundant. If data exists, use it.
-                // var checkbox = row.Controls.OfType<WinForms.CheckBox>().FirstOrDefault();
-                
-                var comboBox = row.Controls.OfType<WinForms.ComboBox>().FirstOrDefault();
-                var textBox = row.Controls.OfType<WinForms.TextBox>().FirstOrDefault();
-
-                // If System Type is selected and Prefix is entered (or even if Prefix is empty? No, prefix usually needed. But maybe empty = empty prefix?)
-                // Assuming user wants override if they selected a System Type.
-                if (comboBox != null && textBox != null && !string.IsNullOrWhiteSpace(comboBox.Text))
-                {
-                    string sysType = comboBox.Text.Trim();
-                    string prefix = textBox.Text.Trim();
-
-                    settings.DuctSystemTypeOverrides[sysType] = prefix;
-                    settings.PipeSystemTypeOverrides[sysType] = prefix;
-                    settings.CableTrayServiceTypeOverrides[sysType] = prefix;
-                    settings.DuctAccessoriesSystemTypeOverrides[sysType] = prefix;
-                }
-            }
+            // System Type Overrides — per category
+            CollectOverridesFromTab("Ducts", settings.DuctSystemTypeOverrides);
+            CollectOverridesFromTab("Pipes", settings.PipeSystemTypeOverrides);
+            CollectOverridesFromTab("Cable Trays", settings.CableTrayServiceTypeOverrides);
+            CollectOverridesFromTab("Duct Accessories", settings.DuctAccessoriesSystemTypeOverrides);
 
             return (settings, true);
         }
@@ -2950,10 +3054,6 @@ namespace JSE_Parameter_Service.Views
                 if (_startNumberTextBox != null)
                     _startNumberTextBox.Text = savedSettings.StartNumber.ToString();
 
-                // Restore start number
-                if (_startNumberTextBox != null)
-                    _startNumberTextBox.Text = savedSettings.StartNumber.ToString();
-
                 // Restore Numbering Mode
                 if (_modeContinueRadio != null && _modeNewSheetRadio != null)
                 {
@@ -2977,51 +3077,11 @@ namespace JSE_Parameter_Service.Views
                     }
                 }
 
-                // ✅ PERSISTENCE: Restore System Type Overrides
-                var allOverrides = new Dictionary<string, string>();
-                
-                if (savedSettings.DuctSystemTypeOverrides != null)
-                    foreach(var kvp in savedSettings.DuctSystemTypeOverrides) allOverrides[kvp.Key] = kvp.Value;
-                    
-                if (savedSettings.PipeSystemTypeOverrides != null)
-                    foreach(var kvp in savedSettings.PipeSystemTypeOverrides) allOverrides[kvp.Key] = kvp.Value;
-                    
-                if (savedSettings.CableTrayServiceTypeOverrides != null)
-                    foreach(var kvp in savedSettings.CableTrayServiceTypeOverrides) allOverrides[kvp.Key] = kvp.Value;
-                    
-                if (savedSettings.DuctAccessoriesSystemTypeOverrides != null)
-                    foreach(var kvp in savedSettings.DuctAccessoriesSystemTypeOverrides) allOverrides[kvp.Key] = kvp.Value;
-
-                if (allOverrides.Count > 0)
-                {
-                    RemarkDebugLogger.LogInfo($"[UI-PERSIST] Restoring {allOverrides.Count} system type overrides");
-                    
-                    // Clear existing default rows
-                    foreach(var row in _systemTypeRows.ToList()) // ToList to avoid modification exception
-                    {
-                        if (_systemTypeOverridesPanel.Controls.Contains(row))
-                        {
-                            _systemTypeOverridesPanel.Controls.Remove(row);
-                        }
-                        row.Dispose();
-                    }
-                    _systemTypeRows.Clear();
-                    
-                    // Add saved rows
-                    foreach(var kvp in allOverrides)
-                    {
-                        if (!string.IsNullOrWhiteSpace(kvp.Key))
-                        {
-                            AddSystemTypeRow(kvp.Key, kvp.Value);
-                        }
-                    }
-                    
-                    // Fill up to 4 rows if needed
-                    while (_systemTypeRows.Count < 4)
-                    {
-                         AddSystemTypeRow("<Select>", "");
-                    }
-                }
+                // Restore System Type Overrides — per category tab
+                RestoreOverridesToTab("Ducts", savedSettings.DuctSystemTypeOverrides);
+                RestoreOverridesToTab("Pipes", savedSettings.PipeSystemTypeOverrides);
+                RestoreOverridesToTab("Cable Trays", savedSettings.CableTrayServiceTypeOverrides);
+                RestoreOverridesToTab("Duct Accessories", savedSettings.DuctAccessoriesSystemTypeOverrides);
 
                 RemarkDebugLogger.LogInfo("[ParameterServiceDialogV2] Loaded saved settings successfully");
             }
@@ -3055,22 +3115,11 @@ namespace JSE_Parameter_Service.Views
                                            : null
                 };
 
-                // Collect system type overrides from UI rows
-                if (_systemTypeRows != null)
-                {
-                    foreach (var row in _systemTypeRows)
-                    {
-                        var comboBox = row.Controls.OfType<WinForms.ComboBox>().FirstOrDefault();
-                        var textBox = row.Controls.OfType<WinForms.TextBox>().FirstOrDefault();
-                        if (comboBox != null && textBox != null && !string.IsNullOrWhiteSpace(comboBox.Text))
-                        {
-                            settings.DuctSystemTypeOverrides[comboBox.Text] = textBox.Text;
-                            settings.PipeSystemTypeOverrides[comboBox.Text] = textBox.Text;
-                            settings.CableTrayServiceTypeOverrides[comboBox.Text] = textBox.Text;
-                            settings.DuctAccessoriesSystemTypeOverrides[comboBox.Text] = textBox.Text;
-                        }
-                    }
-                }
+                // Collect system type overrides per category
+                CollectOverridesFromTab("Ducts", settings.DuctSystemTypeOverrides);
+                CollectOverridesFromTab("Pipes", settings.PipeSystemTypeOverrides);
+                CollectOverridesFromTab("Cable Trays", settings.CableTrayServiceTypeOverrides);
+                CollectOverridesFromTab("Duct Accessories", settings.DuctAccessoriesSystemTypeOverrides);
 
                 SystemTypeOverridePersistenceService.SaveSettings(settings);
                 RemarkDebugLogger.LogInfo("[ParameterServiceDialogV2] Saved current settings successfully");

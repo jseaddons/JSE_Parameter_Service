@@ -1,6 +1,14 @@
 using System;
 using System.Collections.Generic;
+#if NET8_0_OR_GREATER
+using SQLiteConnection = Microsoft.Data.Sqlite.SqliteConnection;
+using SQLiteCommand = Microsoft.Data.Sqlite.SqliteCommand;
+using SQLiteDataReader = Microsoft.Data.Sqlite.SqliteDataReader;
+using SQLiteParameter = Microsoft.Data.Sqlite.SqliteParameter;
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
 using System.Data.SQLite;
+#endif
 using System.Linq;
 using System.Text.Json;
 using JSE_Parameter_Service.Data;
@@ -578,7 +586,7 @@ namespace JSE_Parameter_Service.Data.Repositories
                         }
                     }
                     }
-                    catch (System.Data.SQLite.SQLiteException colEx) when (colEx.Message.Contains("AdoptToDocumentFlag"))
+                    catch (Exception colEx) when (colEx.Message.Contains("AdoptToDocumentFlag"))
                     {
                         // ✅ MIGRATION FALLBACK: AdoptToDocumentFlag column doesn't exist yet
                         // Try loading from old OpeningSettings column for backward compatibility

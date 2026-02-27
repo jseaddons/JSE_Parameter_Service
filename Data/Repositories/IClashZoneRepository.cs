@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+#if NET8_0_OR_GREATER
+using SQLiteTransaction = Microsoft.Data.Sqlite.SqliteTransaction;
+#else
+using System.Data.SQLite;
+#endif
 using JSE_Parameter_Service.Data.Entities;
 using JSE_Parameter_Service.Models;
 
@@ -202,7 +207,7 @@ namespace JSE_Parameter_Service.Data.Repositories
         /// <summary>
         /// ✅ BATCH OPTIMIZATION: Update R-tree index for multiple clash zones in one pass.
         /// </summary>
-        void BulkUpdateRTreeIndex(IEnumerable<ClashZone> zones, System.Data.SQLite.SQLiteTransaction? transaction = null);
+        void BulkUpdateRTreeIndex(IEnumerable<ClashZone> zones, SQLiteTransaction? transaction = null);
 
 
 
